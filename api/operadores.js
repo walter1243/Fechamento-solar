@@ -45,6 +45,22 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (req.method === 'DELETE') {
+      const nome = String(req.query?.nome || '').trim();
+      if (!nome) {
+        sendJson(res, 400, { error: 'nome e obrigatorio para excluir.' });
+        return;
+      }
+
+      await sql`
+        DELETE FROM operadores
+        WHERE nome = ${nome}
+      `;
+
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
     sendJson(res, 405, { error: 'Metodo nao permitido.' });
   } catch (error) {
     sendJson(res, 500, { error: error.message || 'Erro interno.' });

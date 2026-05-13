@@ -250,6 +250,12 @@ async function salvarOperadorNoBanco(nome) {
     });
 }
 
+async function excluirOperadorNoBanco(nome) {
+    await requisicaoJson(`${URL_API_OPERADORES}?nome=${encodeURIComponent(nome)}`, {
+        method: 'DELETE'
+    });
+}
+
 async function salvarParcialNoBanco(parcial) {
     try {
         await requisicaoJson(URL_API_PARCIAIS, {
@@ -432,7 +438,7 @@ function renderizarOperadoresCadastrados() {
     }
 
     container.innerHTML = operadoresCadastrados.map(function (nome) {
-        return `<span class="operator-tag">${nome}</span>`;
+        return `<span class="operator-tag">${nome}<button type="button" class="operator-remove" onclick="excluirCaixa('${nome.replace(/'/g, "\\'")}')">Excluir</button></span>`;
     }).join('');
 }
 
@@ -461,6 +467,30 @@ function popularOperadoresParcial() {
     }
 }
 
+function popularOperadoresFechamentoFinal() {
+    const select = document.getElementById('operador-final');
+    if (!select) return;
+
+    const valorAtual = select.value;
+    const unicos = Array.from(new Set([
+        ...operadoresCadastrados,
+        ...carregarListaParciais().map(function (item) { return item.operador; }),
+        valorAtual
+    ].filter(Boolean)));
+
+    select.innerHTML = '<option value="">Selecione o caixa que esta fechando</option>';
+    unicos.forEach(function (nome) {
+        const option = document.createElement('option');
+        option.value = nome;
+        option.textContent = nome;
+        select.appendChild(option);
+    });
+
+    if (valorAtual && unicos.includes(valorAtual)) {
+        select.value = valorAtual;
+    }
+}
+
 async function cadastrarCaixa() {
     const input = document.getElementById('operator-new-name');
     if (!input) return;
@@ -476,9 +506,27 @@ async function cadastrarCaixa() {
         await carregarOperadoresDoBanco();
         renderizarOperadoresCadastrados();
         popularOperadoresParcial();
+        popularOperadoresFechamentoFinal();
     } catch (erro) {
         console.error('Erro ao cadastrar caixa:', erro);
         alert('Nao foi possivel cadastrar o caixa agora.');
+    }
+}
+
+async function excluirCaixa(nome) {
+    if (!nome) return;
+    const confirmar = window.confirm(`Excluir o caixa ${nome}?`);
+    if (!confirmar) return;
+
+    try {
+        await excluirOperadorNoBanco(nome);
+        await carregarOperadoresDoBanco();
+        renderizarOperadoresCadastrados();
+        popularOperadoresParcial();
+        popularOperadoresFechamentoFinal();
+    } catch (erro) {
+        console.error('Erro ao excluir caixa:', erro);
+        alert('Nao foi possivel excluir o caixa agora.');
     }
 }
 
@@ -710,7 +758,7 @@ function preencherCupom(dados) {
 function montarDadosCupom() {
     const parcialSelecionado = obterParcialSelecionadoNoFinal() || {};
     const caixaCompartilhado = !!document.getElementById('caixa-compartilhado').checked;
-    const finalOperadorInput = document.getElementById('operador-final').value.trim();
+    const finalOperadorInput = (document.getElementById('operador-final').value || '').trim();
     const debito = paraNumero(document.getElementById('cartao-debito').value);
     const credito = paraNumero(document.getElementById('cartao-credito').value);
     const alimentacao = paraNumero(document.getElementById('cartao-alimentacao').value);
@@ -757,15 +805,9 @@ function confirmarOperadorFinalSeCompartilhado() {
     if (!caixaCompartilhado) return true;
 
     const campoNomeFinal = document.getElementById('operador-final');
-    if (campoNomeFinal.value.trim()) return true;
-
-    const nome = window.prompt('Caixa compartilhado ativo. Digite o nome de quem está fechando agora:');
-    if (!nome || !nome.trim()) {
-        alert('Informe o nome de quem está fechando para continuar.');
-        return false;
-    }
-    campoNomeFinal.value = nome.trim();
-    return true;
+    if ((campoNomeFinal.value || '').trim()) return true;
+    alert('Selecione o caixa que esta fechando agora.');
+    return false;
 }
 
 function atualizarVisibilidadeOperadorFinal() {
@@ -871,6 +913,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     await carregarOperadoresDoBanco();
     renderizarOperadoresCadastrados();
     popularOperadoresParcial();
+    popularOperadoresFechamentoFinal();
     await carregarHistoricoPorData();
     carregarParcialNoFinal();
     const defaultButton = document.querySelector('.tab-button[data-tab="parcial"]');

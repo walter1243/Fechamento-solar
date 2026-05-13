@@ -176,6 +176,9 @@ body {
 }
 
 .operator-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     padding: 6px 10px;
     border-radius: 999px;
     border: 1px solid rgba(125, 211, 252, 0.35);
@@ -183,6 +186,20 @@ body {
     color: #bfdbfe;
     font-size: 0.78rem;
     font-weight: 600;
+}
+
+.operator-remove {
+    border: 1px solid rgba(248, 113, 113, 0.45);
+    background: rgba(248, 113, 113, 0.14);
+    color: #fecaca;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    cursor: pointer;
+}
+
+.operator-remove:hover {
+    background: rgba(248, 113, 113, 0.22);
 }
 
 .history-modal[hidden] {
