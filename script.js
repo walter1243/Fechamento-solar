@@ -5,8 +5,10 @@ const URL_SERVICO_IMPRESSAO = 'http://127.0.0.1:8000/imprimir';
 const API_BASE_URL = window.location.protocol === 'file:'
     ? 'https://fechamento-solar.vercel.app'
     : window.location.origin;
+const URL_API_OPERADORES = `${API_BASE_URL}/api/operadores`;
 const URL_API_PARCIAIS = `${API_BASE_URL}/api/parciais`;
 const URL_API_FECHAMENTOS_FINAIS = `${API_BASE_URL}/api/fechamentos-finais`;
+let operadoresCadastrados = [];
 let historicoParciais = [];
 let historicoFinais = [];
 
@@ -229,6 +231,25 @@ async function carregarParciaisDoBanco() {
     }
 }
 
+async function carregarOperadoresDoBanco() {
+    try {
+        const resultado = await requisicaoJson(URL_API_OPERADORES);
+        operadoresCadastrados = Array.isArray(resultado.items)
+            ? resultado.items.map(function (item) { return String(item.nome || '').trim(); }).filter(Boolean)
+            : [];
+    } catch (erro) {
+        console.warn('Nao foi possivel carregar operadores do banco.', erro);
+        operadoresCadastrados = [];
+    }
+}
+
+async function salvarOperadorNoBanco(nome) {
+    await requisicaoJson(URL_API_OPERADORES, {
+        method: 'POST',
+        body: JSON.stringify({ nome })
+    });
+}
+
 async function salvarParcialNoBanco(parcial) {
     try {
         await requisicaoJson(URL_API_PARCIAIS, {
@@ -271,6 +292,22 @@ function atualizarPreviewHistorico(texto) {
     preview.textContent = texto || 'Selecione um relatorio para visualizar aqui.';
 }
 
+function fecharPopupHistorico() {
+    const modal = document.getElementById('history-modal');
+    if (!modal) return;
+    modal.hidden = true;
+}
+
+function abrirPopupHistorico(titulo, conteudo) {
+    const modal = document.getElementById('history-modal');
+    const modalTitulo = document.getElementById('history-modal-title');
+    const modalPreview = document.getElementById('history-modal-preview');
+    if (!modal || !modalTitulo || !modalPreview) return;
+    modalTitulo.textContent = titulo;
+    modalPreview.textContent = conteudo;
+    modal.hidden = false;
+}
+
 function renderizarListaHistorico(containerId, itens, tipo) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -306,13 +343,17 @@ function renderizarListaHistorico(containerId, itens, tipo) {
 function visualizarHistoricoParcial(indice) {
     const item = historicoParciais[indice];
     if (!item) return;
-    atualizarPreviewHistorico(gerarConteudoParcialTexto(item));
+    const conteudo = gerarConteudoParcialTexto(item);
+    atualizarPreviewHistorico(conteudo);
+    abrirPopupHistorico('Visualizacao • Fechamento Parcial', conteudo);
 }
 
 function visualizarHistoricoFinal(indice) {
     const item = historicoFinais[indice];
     if (!item) return;
-    atualizarPreviewHistorico(gerarConteudoFinalTexto(item));
+    const conteudo = gerarConteudoFinalTexto(item);
+    atualizarPreviewHistorico(conteudo);
+    abrirPopupHistorico('Visualizacao • Fechamento Final', conteudo);
 }
 
 async function imprimirHistoricoParcial(indice) {
@@ -378,6 +419,66 @@ function carregarListaParciais() {
             });
     } catch (_erro) {
         return [];
+    }
+}
+
+function renderizarOperadoresCadastrados() {
+    const container = document.getElementById('operators-list');
+    if (!container) return;
+
+    if (!operadoresCadastrados.length) {
+        container.innerHTML = '<p class="helper-line">Nenhum caixa cadastrado.</p>';
+        return;
+    }
+
+    container.innerHTML = operadoresCadastrados.map(function (nome) {
+        return `<span class="operator-tag">${nome}</span>`;
+    }).join('');
+}
+
+function popularOperadoresParcial() {
+    const select = document.getElementById('parcial-operador');
+    if (!select) return;
+
+    const valorAtual = select.value;
+    const operadoresDoHistorico = carregarListaParciais().map(function (item) { return item.operador; });
+    const unicos = Array.from(new Set([...
+        operadoresCadastrados,
+        ...operadoresDoHistorico,
+        valorAtual
+    ].filter(Boolean)));
+
+    select.innerHTML = '<option value="">Selecione o caixa</option>';
+    unicos.forEach(function (nome) {
+        const option = document.createElement('option');
+        option.value = nome;
+        option.textContent = nome;
+        select.appendChild(option);
+    });
+
+    if (valorAtual && unicos.includes(valorAtual)) {
+        select.value = valorAtual;
+    }
+}
+
+async function cadastrarCaixa() {
+    const input = document.getElementById('operator-new-name');
+    if (!input) return;
+    const nome = input.value.trim();
+    if (!nome) {
+        alert('Digite o nome do caixa para cadastrar.');
+        return;
+    }
+
+    try {
+        await salvarOperadorNoBanco(nome);
+        input.value = '';
+        await carregarOperadoresDoBanco();
+        renderizarOperadoresCadastrados();
+        popularOperadoresParcial();
+    } catch (erro) {
+        console.error('Erro ao cadastrar caixa:', erro);
+        alert('Nao foi possivel cadastrar o caixa agora.');
     }
 }
 
@@ -767,6 +868,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     await carregarParciaisDoBanco();
+    await carregarOperadoresDoBanco();
+    renderizarOperadoresCadastrados();
+    popularOperadoresParcial();
     await carregarHistoricoPorData();
     carregarParcialNoFinal();
     const defaultButton = document.querySelector('.tab-button[data-tab="parcial"]');

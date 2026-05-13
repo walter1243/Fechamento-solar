@@ -20,6 +20,17 @@
 
                 <section class="history-section">
                     <div class="history-section-header">
+                        <h3>Cadastro de Caixas</h3>
+                    </div>
+                    <input type="text" id="operator-new-name" class="history-date-input" placeholder="Nome do caixa">
+                    <button type="button" class="action-button subtle history-refresh" onclick="cadastrarCaixa()">Cadastrar Caixa</button>
+                    <div id="operators-list" class="operators-list">
+                        <p class="helper-line">Nenhum caixa cadastrado.</p>
+                    </div>
+                </section>
+
+                <section class="history-section">
+                    <div class="history-section-header">
                         <h3>Parciais</h3>
                         <span id="history-partials-count" class="history-count">0</span>
                     </div>
@@ -57,8 +68,10 @@
             <div id="parcial" class="tab-content">
             <h2>Fechamento Parcial</h2>
             <form id="parcial-form" class="form-grid">
-                <label for="parcial-operador">Nome do Caixa:</label>
-                <input type="text" id="parcial-operador" name="parcial-operador" placeholder="Digite o nome do operador" required>
+                <label for="parcial-operador">Qual caixa voce e:</label>
+                <select id="parcial-operador" name="parcial-operador" required>
+                    <option value="">Selecione o caixa</option>
+                </select>
 
                 <label for="parcial-datahora">Data e Horário:</label>
                 <input type="datetime-local" id="parcial-datahora" name="parcial-datahora" required>
@@ -184,6 +197,18 @@
             </section>
         </div>
     </div>
+
+    <div id="history-modal" class="history-modal" hidden>
+        <div class="history-modal-backdrop" onclick="fecharPopupHistorico()"></div>
+        <div class="history-modal-content" role="dialog" aria-modal="true" aria-label="Visualizacao de relatorio">
+            <div class="history-modal-header">
+                <h3 id="history-modal-title">Visualizacao do Relatorio</h3>
+                <button type="button" class="modal-close" onclick="fecharPopupHistorico()">Fechar</button>
+            </div>
+            <pre id="history-modal-preview" class="history-preview"></pre>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
