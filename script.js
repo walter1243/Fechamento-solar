@@ -2,6 +2,11 @@ const CHAVE_PARCIAL = 'fechamento_parcial_v1';
 const CHAVE_PARCIAIS = 'fechamentos_parciais_v1';
 const CHAVE_ULTIMO_CUPOM = 'ultimo_cupom_v1';
 const URL_SERVICO_IMPRESSAO = 'http://127.0.0.1:8000/imprimir';
+const API_BASE_URL = window.location.protocol === 'file:'
+    ? 'https://fechamento-solar.vercel.app'
+    : window.location.origin;
+const URL_API_PARCIAIS = `${API_BASE_URL}/api/parciais`;
+const URL_API_FECHAMENTOS_FINAIS = `${API_BASE_URL}/api/fechamentos-finais`;
 
 function formatarMoeda(valor) {
     return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
@@ -171,6 +176,63 @@ async function imprimirOuGerarFallback(conteudo, tipoCupom) {
 
 function openTab(tabName, clickedButton) {
     const tabs = document.querySelectorAll('.tab-content');
+
+    async function requisicaoJson(url, options = {}) {
+        const response = await fetch(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
+            },
+            ...options
+        });
+
+        if (!response.ok) {
+            throw new Error(`Falha na API (${response.status})`);
+        }
+
+        return response.json();
+    }
+
+    async function carregarParciaisDoBanco() {
+        try {
+            const resultado = await requisicaoJson(URL_API_PARCIAIS);
+            const lista = Array.isArray(resultado.items) ? resultado.items : [];
+            salvarListaParciais(lista);
+            if (lista.length) {
+                localStorage.setItem(CHAVE_PARCIAL, JSON.stringify(lista[0]));
+            }
+            return true;
+        } catch (erro) {
+            console.warn('Nao foi possivel carregar parciais do banco.', erro);
+            return false;
+        }
+    }
+
+    async function salvarParcialNoBanco(parcial) {
+        try {
+            await requisicaoJson(URL_API_PARCIAIS, {
+                method: 'POST',
+                body: JSON.stringify(parcial)
+            });
+            return true;
+        } catch (erro) {
+            console.warn('Nao foi possivel salvar parcial no banco.', erro);
+            return false;
+        }
+    }
+
+    async function salvarFechamentoFinalNoBanco(dados) {
+        try {
+            await requisicaoJson(URL_API_FECHAMENTOS_FINAIS, {
+                method: 'POST',
+                body: JSON.stringify(dados)
+            });
+            return true;
+        } catch (erro) {
+            console.warn('Nao foi possivel salvar fechamento final no banco.', erro);
+            return false;
+        }
+    }
     tabs.forEach(tab => tab.style.display = 'none');
     const buttons = document.querySelectorAll('.tab-button');
     buttons.forEach(button => button.classList.remove('active'));
@@ -261,7 +323,7 @@ function obterParcialSelecionadoNoFinal() {
     };
 }
 
-function salvarParcial() {
+async function salvarParcial() {
     const operador = document.getElementById('parcial-operador').value.trim();
     const datahora = document.getElementById('parcial-datahora').value;
     const valor = paraNumero(document.getElementById('parcial-valor').value);
@@ -273,13 +335,16 @@ function salvarParcial() {
     localStorage.setItem(CHAVE_PARCIAL, JSON.stringify(parcial));
     salvarOuAtualizarParcial(parcial);
     document.getElementById('parcial-total').textContent = formatarMoeda(valor);
-    document.getElementById('parcial-status').textContent = 'Fechamento parcial salvo com sucesso.';
+    const salvouNoBanco = await salvarParcialNoBanco(parcial);
+    document.getElementById('parcial-status').textContent = salvouNoBanco
+        ? 'Fechamento parcial salvo com sucesso e sincronizado no banco.'
+        : 'Fechamento parcial salvo apenas neste dispositivo. Banco indisponivel.';
     carregarParcialNoFinal();
     return true;
 }
 
 async function salvarParcialEImprimir() {
-    const salvo = salvarParcial();
+    const salvo = await salvarParcial();
     if (!salvo) return;
     const bruto = localStorage.getItem(CHAVE_PARCIAL);
     if (!bruto) return;
@@ -522,6 +587,7 @@ async function imprimirFechamentoFinal() {
     const dados = calcularFinal();
     if (!dados) return;
     localStorage.setItem(CHAVE_ULTIMO_CUPOM, JSON.stringify(dados));
+    await salvarFechamentoFinalNoBanco(dados);
     const conteudo = gerarConteudoFinalTexto(dados);
     await imprimirOuGerarFallback(conteudo, 'do fechamento final');
 }
@@ -538,7 +604,7 @@ async function reimprimirUltimoCupom() {
     await imprimirOuGerarFallback(conteudo, 'final (reimpressão)');
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     const campoDataHora = document.getElementById('parcial-datahora');
     if (campoDataHora && !campoDataHora.value) {
         const agora = new Date();
@@ -563,9 +629,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (selectOperadorParcial) {
         selectOperadorParcial.addEventListener('change', function () {
             carregarParcialNoFinal();
-            if (document.getElementById('caixa-compartilhado').checked) {
-                confirmarOperadorFinalSeCompartilhado();
-            }
         });
     }
 
@@ -573,14 +636,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (checkboxCompartilhado) {
         checkboxCompartilhado.addEventListener('change', function () {
             atualizarVisibilidadeOperadorFinal();
-            if (checkboxCompartilhado.checked) {
-                confirmarOperadorFinalSeCompartilhado();
-            }
         });
     }
 
     atualizarVisibilidadeOperadorFinal();
 
+    await carregarParciaisDoBanco();
     carregarParcialNoFinal();
     const defaultButton = document.querySelector('.tab-button[data-tab="parcial"]');
     openTab('parcial', defaultButton);

@@ -23,3 +23,35 @@ Este é um aplicativo web simples para realizar o fechamento de caixa, com duas 
 - Adicionar persistência de dados.
 - Implementar autenticação para operadores de caixa.
 - Melhorar o design da interface.
+
+## Banco de Dados (PostgreSQL)
+
+Este projeto possui um schema SQL para criar as tabelas principais do fechamento:
+
+- `operadores`
+- `fechamentos_parciais`
+- `fechamentos_finais`
+- `saidas_detalhes`
+
+Arquivos:
+
+- `scripts/schema.sql`
+- `scripts/init_db.py`
+
+### Como criar as tabelas
+
+1. Configure o `DATABASE_URL` no `.env`.
+2. Instale dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+3. Rode o inicializador:
+
+```bash
+python scripts/init_db.py
+```
+
+Se o `.env` estiver no formato antigo com a URL dentro de `DB_PASSWORD`,
+o script tambem reconhece automaticamente.
