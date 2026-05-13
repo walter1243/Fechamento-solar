@@ -160,49 +160,32 @@ function gerarCupomElginArquivo(conteudo) {
     baixarArquivo('cupom-elgin.txt', conteudo);
 }
 async function imprimirViaServicoLocal(conteudo) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    
-    try {
-        const response = await fetch(URL_SERVICO_IMPRESSAO, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texto: conteudo }),
-            signal: controller.signal
-        });
+    const response = await fetch(URL_SERVICO_IMPRESSAO, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto: conteudo })
+    });
 
-        if (!response.ok) {
-            throw new Error(`Serviço respondeu com status ${response.status}.`);
-        }
-
-        const resultado = await response.json();
-        if (resultado.status !== 'Impresso com sucesso') {
-            throw new Error(resultado.detalhes || 'Falha ao imprimir via serviço local.');
-        }
-
-        return resultado;
-    } finally {
-        clearTimeout(timeout);
+    if (!response.ok) {
+        throw new Error(`Serviço respondeu com status ${response.status}.`);
     }
+
+    const resultado = await response.json();
+    if (resultado.status !== 'Impresso com sucesso') {
+        throw new Error(resultado.detalhes || 'Falha ao imprimir via serviço local.');
+    }
+
+    return resultado;
 }
 
 async function imprimirOuGerarFallback(conteudo, tipoCupom) {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
-    if (!isLocal) {
-        console.warn('Nao e possivel imprimir da Vercel (sem servico local). Gerando arquivo para download.');
-        gerarCupomElginArquivo(conteudo);
-        alert('Esta usando a versao online (Vercel). O arquivo cupom-elgin.txt foi gerado para impressao via BAT. Use a maquina local com o servico de impressao rodando para imprimir online.');
-        return;
-    }
-    
     try {
         await imprimirViaServicoLocal(conteudo);
         alert(`Impressão ${tipoCupom} enviada com sucesso para a Elgin i9.`);
     } catch (erro) {
         console.error('Erro na impressão via serviço local:', erro);
         gerarCupomElginArquivo(conteudo);
-        alert('O servico local de impressao nao esta rodando. O arquivo cupom-elgin.txt foi gerado para impressao via BAT.');
+        alert('O serviço local de impressão não está rodando ou falhou. O arquivo cupom-elgin.txt foi gerado para impressão via BAT.');
     }
 }
 
