@@ -366,6 +366,8 @@ function atualizarTotalSaidas(periodo) {
 
 function calcularFinal() {
     const dados = montarDadosCupom();
+    document.getElementById('final-total-cartao').textContent = formatarMoeda(dados.totalCartao);
+    document.getElementById('final-total-pix-transferencia').textContent = formatarMoeda(dados.totalPixTransferencia);
     document.getElementById('final-total').textContent = formatarMoeda(dados.total);
     document.getElementById('final-diferenca').textContent = formatarMoeda(dados.diferenca);
     preencherCupom(dados);
