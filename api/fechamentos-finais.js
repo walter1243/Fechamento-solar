@@ -8,13 +8,74 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  if (req.method !== 'POST') {
-    sendJson(res, 405, { error: 'Metodo nao permitido.' });
-    return;
-  }
-
   try {
     const sql = getSql();
+
+    if (req.method === 'GET') {
+      const selectedDate = req.query?.date;
+      const rows = selectedDate
+        ? await sql`
+            SELECT *
+            FROM fechamentos_finais
+            WHERE DATE(created_at) = ${selectedDate}
+            ORDER BY created_at DESC
+          `
+        : await sql`
+            SELECT *
+            FROM fechamentos_finais
+            ORDER BY created_at DESC
+            LIMIT 30
+          `;
+
+      const ids = rows.map(row => row.id);
+      const detalhes = ids.length
+        ? await sql`
+            SELECT fechamento_final_id, periodo, descricao, valor
+            FROM saidas_detalhes
+            WHERE fechamento_final_id = ANY(${ids})
+            ORDER BY id ASC
+          `
+        : [];
+
+      sendJson(res, 200, {
+        items: rows.map(row => ({
+          id: row.id,
+          parcialOperador: row.operador_inicial_nome,
+          finalOperador: row.operador_final_nome,
+          caixaCompartilhado: row.caixa_compartilhado,
+          debito: Number(row.debito || 0),
+          credito: Number(row.credito || 0),
+          alimentacao: Number(row.alimentacao || 0),
+          pix: Number(row.pix || 0),
+          transferencia: Number(row.transferencia || 0),
+          sistema: Number(row.sistema || 0),
+          dinheiroAgenda: Number(row.dinheiro_agenda || 0),
+          totalDinheiro: Number(row.total_dinheiro || 0),
+          totalCartao: Number(row.total_cartao || 0),
+          totalPixTransferencia: Number(row.total_pix_transferencia || 0),
+          total: Number(row.total_final || 0),
+          saidasManha: Number(row.saidas_manha_total || 0),
+          saidasTarde: Number(row.saidas_tarde_total || 0),
+          saidas: Number(row.saidas_total || 0),
+          parcialDataHora: row.created_at,
+          parcialValor: 0,
+          detalhesSaidasManha: detalhes
+            .filter(item => item.fechamento_final_id === row.id && item.periodo === 'manha')
+            .map(item => ({ descricao: item.descricao, valor: Number(item.valor || 0) })),
+          detalhesSaidasTarde: detalhes
+            .filter(item => item.fechamento_final_id === row.id && item.periodo === 'tarde')
+            .map(item => ({ descricao: item.descricao, valor: Number(item.valor || 0) })),
+          createdAt: row.created_at,
+        }))
+      });
+      return;
+    }
+
+    if (req.method !== 'POST') {
+      sendJson(res, 405, { error: 'Metodo nao permitido.' });
+      return;
+    }
+
     const body = await readJsonBody(req);
 
     const inserted = await sql`

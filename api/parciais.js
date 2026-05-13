@@ -12,20 +12,29 @@ module.exports = async function handler(req, res) {
     const sql = getSql();
 
     if (req.method === 'GET') {
-      const rows = await sql`
-        SELECT operador_nome, datahora, valor, created_at
-        FROM (
-          SELECT operador_nome, datahora, valor, created_at,
-                 ROW_NUMBER() OVER (PARTITION BY LOWER(operador_nome) ORDER BY created_at DESC) AS rn
-          FROM fechamentos_parciais
-        ) parciais
-        WHERE rn = 1
-        ORDER BY created_at DESC
-        LIMIT 30
-      `;
+      const selectedDate = req.query?.date;
+      const rows = selectedDate
+        ? await sql`
+            SELECT id, operador_nome, datahora, valor, created_at
+            FROM fechamentos_parciais
+            WHERE DATE(datahora) = ${selectedDate}
+            ORDER BY datahora DESC, created_at DESC
+          `
+        : await sql`
+            SELECT id, operador_nome, datahora, valor, created_at
+            FROM (
+              SELECT id, operador_nome, datahora, valor, created_at,
+                     ROW_NUMBER() OVER (PARTITION BY LOWER(operador_nome) ORDER BY created_at DESC) AS rn
+              FROM fechamentos_parciais
+            ) parciais
+            WHERE rn = 1
+            ORDER BY created_at DESC
+            LIMIT 30
+          `;
 
       sendJson(res, 200, {
         items: rows.map(row => ({
+          id: row.id,
           operador: row.operador_nome,
           datahora: row.datahora,
           valor: Number(row.valor || 0),

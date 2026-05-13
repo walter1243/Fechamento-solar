@@ -7,14 +7,54 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Fechamento de Caixa</h1>
-        <p class="subtitle">Controle rapido para fechamento parcial e final do operador.</p>
-        <div class="tabs">
-            <button type="button" class="tab-button" data-tab="parcial" onclick="openTab('parcial', this)">Fechamento Parcial</button>
-            <button type="button" class="tab-button" data-tab="final" onclick="openTab('final', this)">Fechamento Final</button>
-        </div>
-        <div id="parcial" class="tab-content">
+    <div class="desktop-shell">
+        <aside class="history-panel">
+            <div class="history-panel-inner">
+                <p class="eyebrow">Historico</p>
+                <h2>Relatorios Anteriores</h2>
+                <p class="helper-line">Escolha um dia para revisar fechamentos parciais e finais e imprimir novamente quando precisar.</p>
+
+                <label for="history-date" class="history-label">Dia do relatorio</label>
+                <input type="date" id="history-date" class="history-date-input">
+                <button type="button" class="action-button subtle history-refresh" onclick="carregarHistoricoPorData()">Atualizar historico</button>
+
+                <section class="history-section">
+                    <div class="history-section-header">
+                        <h3>Parciais</h3>
+                        <span id="history-partials-count" class="history-count">0</span>
+                    </div>
+                    <div id="history-partials-list" class="history-list">
+                        <p class="helper-line">Nenhum fechamento parcial carregado.</p>
+                    </div>
+                </section>
+
+                <section class="history-section">
+                    <div class="history-section-header">
+                        <h3>Finais</h3>
+                        <span id="history-finals-count" class="history-count">0</span>
+                    </div>
+                    <div id="history-finals-list" class="history-list">
+                        <p class="helper-line">Nenhum fechamento final carregado.</p>
+                    </div>
+                </section>
+
+                <section class="history-section">
+                    <div class="history-section-header">
+                        <h3>Visualizacao</h3>
+                    </div>
+                    <pre id="history-preview" class="history-preview">Selecione um relatorio para visualizar aqui.</pre>
+                </section>
+            </div>
+        </aside>
+
+        <div class="container">
+            <h1>Fechamento de Caixa</h1>
+            <p class="subtitle">Controle rapido para fechamento parcial e final do operador.</p>
+            <div class="tabs">
+                <button type="button" class="tab-button" data-tab="parcial" onclick="openTab('parcial', this)">Fechamento Parcial</button>
+                <button type="button" class="tab-button" data-tab="final" onclick="openTab('final', this)">Fechamento Final</button>
+            </div>
+            <div id="parcial" class="tab-content">
             <h2>Fechamento Parcial</h2>
             <form id="parcial-form" class="form-grid">
                 <label for="parcial-operador">Nome do Caixa:</label>
@@ -108,9 +148,9 @@
                 </div>
             </form>
             <p class="helper-line">A impressão usa o serviço local Python em 127.0.0.1:8000 para enviar direto à Elgin i9 com corte. Se ele não estiver rodando, o sistema gera cupom-elgin.txt para uso no BAT.</p>
-        </div>
+            </div>
 
-        <section id="print-area" class="print-area">
+            <section id="print-area" class="print-area">
             <h3>RELATÓRIO DIÁRIO DE CAIXA</h3>
             <p>Data/Hora Parcial: <span id="print-parcial-datahora">-</span></p>
             <p>Nome do Caixa (Parcial): <span id="print-parcial-operador">-</span></p>
@@ -141,7 +181,8 @@
             <p>Total Final (sem parcial): <span id="print-total-final">R$ 0,00</span></p>
             <p>Saídas (Manhã + Tarde): <span id="print-saidas">R$ 0,00</span></p>
             <p>Diferença: <span id="print-diferenca"></span></p>
-        </section>
+            </section>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>

@@ -7,6 +7,8 @@ const API_BASE_URL = window.location.protocol === 'file:'
     : window.location.origin;
 const URL_API_PARCIAIS = `${API_BASE_URL}/api/parciais`;
 const URL_API_FECHAMENTOS_FINAIS = `${API_BASE_URL}/api/fechamentos-finais`;
+let historicoParciais = [];
+let historicoFinais = [];
 
 function formatarMoeda(valor) {
     return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
@@ -21,6 +23,17 @@ function formatarDataHora(valor) {
     const data = new Date(valor);
     if (Number.isNaN(data.getTime())) return valor;
     return data.toLocaleString('pt-BR');
+}
+
+function formatarDataParaFiltro(valor) {
+    const data = valor ? new Date(valor) : new Date();
+    if (Number.isNaN(data.getTime())) {
+        return '';
+    }
+    const ano = data.getFullYear();
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const dia = String(data.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
 }
 
 function baixarArquivo(nomeArquivo, conteudo) {
@@ -239,6 +252,112 @@ async function salvarFechamentoFinalNoBanco(dados) {
     } catch (erro) {
         console.warn('Nao foi possivel salvar fechamento final no banco.', erro);
         return false;
+    }
+}
+
+async function carregarHistoricoParciaisPorData(data) {
+    const resultado = await requisicaoJson(`${URL_API_PARCIAIS}?date=${encodeURIComponent(data)}`);
+    return Array.isArray(resultado.items) ? resultado.items : [];
+}
+
+async function carregarHistoricoFinaisPorData(data) {
+    const resultado = await requisicaoJson(`${URL_API_FECHAMENTOS_FINAIS}?date=${encodeURIComponent(data)}`);
+    return Array.isArray(resultado.items) ? resultado.items : [];
+}
+
+function atualizarPreviewHistorico(texto) {
+    const preview = document.getElementById('history-preview');
+    if (!preview) return;
+    preview.textContent = texto || 'Selecione um relatorio para visualizar aqui.';
+}
+
+function renderizarListaHistorico(containerId, itens, tipo) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!itens.length) {
+        container.innerHTML = '<p class="helper-line">Nenhum relatorio encontrado para o dia selecionado.</p>';
+        return;
+    }
+
+    container.innerHTML = itens.map(function (item, indice) {
+        const titulo = tipo === 'parcial'
+            ? `${item.operador || '-'} • ${formatarMoeda(item.valor)}`
+            : `${item.finalOperador || '-'} • ${formatarMoeda(item.total)}`;
+        const meta = tipo === 'parcial'
+            ? `${formatarDataHora(item.datahora)}<br>Fechamento parcial`
+            : `${formatarDataHora(item.createdAt || item.parcialDataHora)}<br>Inicial: ${item.parcialOperador || '-'} • Final: ${item.finalOperador || '-'}`;
+        const visualizarAcao = tipo === 'parcial' ? `visualizarHistoricoParcial(${indice})` : `visualizarHistoricoFinal(${indice})`;
+        const imprimirAcao = tipo === 'parcial' ? `imprimirHistoricoParcial(${indice})` : `imprimirHistoricoFinal(${indice})`;
+
+        return `
+            <article class="history-item">
+                <p class="history-item-title">${titulo}</p>
+                <p class="history-item-meta">${meta}</p>
+                <div class="history-item-actions">
+                    <button type="button" class="action-button subtle" onclick="${visualizarAcao}">Visualizar</button>
+                    <button type="button" class="action-button secondary" onclick="${imprimirAcao}">Imprimir</button>
+                </div>
+            </article>
+        `;
+    }).join('');
+}
+
+function visualizarHistoricoParcial(indice) {
+    const item = historicoParciais[indice];
+    if (!item) return;
+    atualizarPreviewHistorico(gerarConteudoParcialTexto(item));
+}
+
+function visualizarHistoricoFinal(indice) {
+    const item = historicoFinais[indice];
+    if (!item) return;
+    atualizarPreviewHistorico(gerarConteudoFinalTexto(item));
+}
+
+async function imprimirHistoricoParcial(indice) {
+    const item = historicoParciais[indice];
+    if (!item) return;
+    const conteudo = gerarConteudoParcialTexto(item);
+    atualizarPreviewHistorico(conteudo);
+    await imprimirOuGerarFallback(conteudo, 'do fechamento parcial historico');
+}
+
+async function imprimirHistoricoFinal(indice) {
+    const item = historicoFinais[indice];
+    if (!item) return;
+    const conteudo = gerarConteudoFinalTexto(item);
+    atualizarPreviewHistorico(conteudo);
+    await imprimirOuGerarFallback(conteudo, 'do fechamento final historico');
+}
+
+async function carregarHistoricoPorData() {
+    const campoData = document.getElementById('history-date');
+    if (!campoData) return;
+
+    const data = campoData.value || formatarDataParaFiltro();
+    if (!data) return;
+    campoData.value = data;
+
+    try {
+        const [parciais, finais] = await Promise.all([
+            carregarHistoricoParciaisPorData(data),
+            carregarHistoricoFinaisPorData(data)
+        ]);
+        historicoParciais = parciais;
+        historicoFinais = finais;
+        document.getElementById('history-partials-count').textContent = String(parciais.length);
+        document.getElementById('history-finals-count').textContent = String(finais.length);
+        renderizarListaHistorico('history-partials-list', parciais, 'parcial');
+        renderizarListaHistorico('history-finals-list', finais, 'final');
+        atualizarPreviewHistorico();
+    } catch (erro) {
+        console.error('Erro ao carregar historico por data:', erro);
+        document.getElementById('history-partials-count').textContent = '0';
+        document.getElementById('history-finals-count').textContent = '0';
+        document.getElementById('history-partials-list').innerHTML = '<p class="helper-line">Nao foi possivel carregar os parciais.</p>';
+        document.getElementById('history-finals-list').innerHTML = '<p class="helper-line">Nao foi possivel carregar os finais.</p>';
+        atualizarPreviewHistorico('Falha ao carregar historico do dia selecionado.');
     }
 }
 
@@ -642,7 +761,13 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     atualizarVisibilidadeOperadorFinal();
 
+    const campoHistorico = document.getElementById('history-date');
+    if (campoHistorico) {
+        campoHistorico.value = formatarDataParaFiltro();
+    }
+
     await carregarParciaisDoBanco();
+    await carregarHistoricoPorData();
     carregarParcialNoFinal();
     const defaultButton = document.querySelector('.tab-button[data-tab="parcial"]');
     openTab('parcial', defaultButton);
