@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fechamento de Caixa</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Fechamento de Caixa</h1>
+        <div class="tabs">
+            <button class="tab-button" onclick="openTab('parcial')">Fechamento Parcial</button>
+            <button class="tab-button" onclick="openTab('final')">Fechamento Final</button>
+        </div>
+        <div id="parcial" class="tab-content">
+            <h2>Fechamento Parcial</h2>
+            <form id="parcial-form">
+                <label for="parcial-valor">Valor:</label>
+                <input type="number" id="parcial-valor" name="parcial-valor" required>
+                <button type="button" onclick="calcularParcial()">Calcular</button>
+                <p>Total: <span id="parcial-total">0</span></p>
+            </form>
+        </div>
+        <div id="final" class="tab-content" style="display:none;">
+            <h2>Fechamento Final</h2>
+            <form id="final-form">
+                <label for="operador">Operador de Caixa:</label>
+                <input type="text" id="operador" name="operador" required>
+
+                <label for="cartao-debito">Cartão Débito:</label>
+                <input type="number" id="cartao-debito" name="cartao-debito" required>
+
+                <label for="cartao-credito">Cartão Crédito:</label>
+                <input type="number" id="cartao-credito" name="cartao-credito" required>
+
+                <label for="cartao-alimentacao">Cartão Alimentação:</label>
+                <input type="number" id="cartao-alimentacao" name="cartao-alimentacao" required>
+
+                <label for="pix">PIX:</label>
+                <input type="number" id="pix" name="pix" required>
+
+                <label for="transferencia">Transferência Bancária:</label>
+                <input type="number" id="transferencia" name="transferencia" required>
+
+                <label for="dinheiro-agenda">Dinheiro Agenda:</label>
+                <input type="number" id="dinheiro-agenda" name="dinheiro-agenda" required>
+
+                <label for="saidas-manha">Saídas Manhã:</label>
+                <input type="number" id="saidas-manha" name="saidas-manha" required>
+
+                <label for="saidas-tarde">Saídas Tarde:</label>
+                <input type="number" id="saidas-tarde" name="saidas-tarde" required>
+
+                <button type="button" onclick="calcularFinal()">Calcular</button>
+                <p>Total: <span id="final-total">0</span></p>
+                <p>Diferença: <span id="final-diferenca">0</span></p>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Configurar git e publicar no main",
+			"type": "shell",
+			"command": "git config user.name \"walter1243\" && git config user.email \"walter1243@users.noreply.github.com\" && git add . && git commit -m \"Atualizacao para deploy Vercel\" && git push -u origin HEAD:main"
+		},
+		{
+			"label": "Configurar git e publicar no main (PowerShell)",
+			"type": "shell",
+			"command": "git config user.name \"walter1243\"; git config user.email \"walter1243@users.noreply.github.com\"; git add .; git commit -m \"Atualizacao para deploy Vercel\"; git push -u origin HEAD:main"
+		},
+		{
+			"label": "Corrigir origin e publicar no main",
+			"type": "shell",
+			"command": "git remote set-url origin https://github.com/walter1243/Fechamento-solar.git; git add .; git commit -m 'Atualizacao deploy Vercel'; git push -u origin HEAD:main"
+		}
+	]
+}
