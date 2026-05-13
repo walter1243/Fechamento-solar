@@ -27,7 +27,7 @@
                 <input type="number" id="parcial-valor" name="parcial-valor" step="0.01" required>
 
                 <button type="button" class="action-button" onclick="salvarParcial()">Salvar Fechamento Parcial</button>
-                <button type="button" class="action-button secondary" onclick="salvarParcialEImprimir()">Salvar e Imprimir</button>
+                <button type="button" class="action-button secondary" onclick="salvarParcialEImprimir()">Salvar e Gerar Cupom Elgin</button>
                 <p class="result-line">Valor salvo: <span id="parcial-total">R$ 0,00</span></p>
                 <p class="helper-line" id="parcial-status">Nenhum fechamento parcial salvo ainda.</p>
             </form>
@@ -74,13 +74,14 @@
                 <input type="number" id="saidas-tarde" name="saidas-tarde" step="0.01" required>
 
                 <button type="button" class="action-button" onclick="calcularFinal()">Calcular</button>
-                <button type="button" class="action-button secondary" onclick="imprimirFechamentoFinal()">Imprimir Fechamento</button>
-                <button type="button" id="btn-reimprimir" class="action-button warning" onclick="reimprimirUltimoCupom()">Reimprimir Último Cupom</button>
+                <button type="button" class="action-button secondary" onclick="imprimirFechamentoFinal()">Gerar Cupom Elgin (c/ corte)</button>
+                <button type="button" id="btn-reimprimir" class="action-button warning" onclick="reimprimirUltimoCupom()">Regerar Último Cupom</button>
                 <div class="result-panel">
                     <p class="result-line">Total: <span id="final-total">0</span></p>
                     <p class="result-line">Diferença: <span id="final-diferenca">0</span></p>
                 </div>
             </form>
+            <p class="helper-line">Após gerar o arquivo, execute <strong>print-elgin.bat</strong> para imprimir com corte automático na Elgin i9.</p>
         </div>
 
         <section id="print-area" class="print-area">

@@ -25,6 +25,11 @@
 			"label": "Publicar ajuste de salvar e imprimir",
 			"type": "shell",
 			"command": "git add .; git commit -m 'Adiciona botão salvar e imprimir no fechamento parcial'; git push -u origin HEAD:main"
+		},
+		{
+			"label": "Commit e push impressão por aba",
+			"type": "shell",
+			"command": "git add .; git commit -m 'Separar impressão por aba: parcial e final'; git push -u origin HEAD:main"
 		}
 	]
 }

@@ -10,88 +10,120 @@ function paraNumero(valor) {
 }
 
 function formatarDataHora(valor) {
-    if (!valor) {
-        return '-';
-    }
-
+    if (!valor) return '-';
     const data = new Date(valor);
-    if (Number.isNaN(data.getTime())) {
-        return valor;
+    if (Number.isNaN(data.getTime())) return valor;
+    return data.toLocaleString('pt-BR');
+}
+
+function baixarArquivo(nomeArquivo, conteudo) {
+    const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function gerarConteudoParcialTexto(parcial) {
+    const linhas = [
+        'FECHAMENTO PARCIAL',
+        '--------------------------------',
+        `Data/Hora: ${formatarDataHora(parcial.datahora)}`,
+        `Nome do Caixa: ${parcial.operador || '-'}`,
+        `Valor do Caixa: ${formatarMoeda(parcial.valor)}`,
+        '--------------------------------',
+        ''
+    ];
+    return linhas.join('\r\n');
+}
+
+function gerarConteudoFinalTexto(dados) {
+    const linhas = [
+        'FECHAMENTO FINAL',
+        '--------------------------------',
+        `Data/Hora Parcial: ${formatarDataHora(dados.parcialDataHora)}`,
+        `Caixa Parcial: ${dados.parcialOperador || '-'}`,
+        `Valor Parcial: ${formatarMoeda(dados.parcialValor)}`,
+        '--------------------------------',
+        `Operador Final: ${dados.finalOperador || '-'}`,
+        `Cartao Debito: ${formatarMoeda(dados.debito)}`,
+        `Cartao Credito: ${formatarMoeda(dados.credito)}`,
+        `Cartao Alimentacao: ${formatarMoeda(dados.alimentacao)}`,
+        `PIX: ${formatarMoeda(dados.pix)}`,
+        `Transferencia: ${formatarMoeda(dados.transferencia)}`,
+        `Dinheiro Agenda: ${formatarMoeda(dados.dinheiroAgenda)}`,
+        `Total Cartao: ${formatarMoeda(dados.totalCartao)}`,
+        `Total PIX/Transf: ${formatarMoeda(dados.totalPixTransferencia)}`,
+        `Saidas Manha Total: ${formatarMoeda(dados.saidasManha)}`,
+        'Detalhes Saidas Manha:'
+    ];
+
+    if (!dados.detalhesSaidasManha.length) {
+        linhas.push('- Sem lancamentos');
+    } else {
+        dados.detalhesSaidasManha.forEach(function (item) {
+            linhas.push(`- ${item.descricao}: ${formatarMoeda(item.valor)}`);
+        });
     }
 
-    return data.toLocaleString('pt-BR');
+    linhas.push(`Saidas Tarde: ${formatarMoeda(dados.saidasTarde)}`);
+    linhas.push(`Total Final: ${formatarMoeda(dados.total)}`);
+    linhas.push(`Saidas (M+T): ${formatarMoeda(dados.saidas)}`);
+    linhas.push(`Diferenca: ${formatarMoeda(dados.diferenca)}`);
+    linhas.push('--------------------------------');
+    linhas.push('');
+    return linhas.join('\r\n');
+}
+
+function gerarCupomElginArquivo(conteudo) {
+    baixarArquivo('cupom-elgin.txt', conteudo);
 }
 
 function openTab(tabName, clickedButton) {
     const tabs = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => tab.style.display = 'none');
-
     const buttons = document.querySelectorAll('.tab-button');
     buttons.forEach(button => button.classList.remove('active'));
-
     document.getElementById(tabName).style.display = 'block';
-
-    if (clickedButton) {
-        clickedButton.classList.add('active');
-    }
-
-    if (tabName === 'final') {
-        carregarParcialNoFinal();
-    }
+    if (clickedButton) clickedButton.classList.add('active');
+    if (tabName === 'final') carregarParcialNoFinal();
 }
 
 function salvarParcial() {
     const operador = document.getElementById('parcial-operador').value.trim();
     const datahora = document.getElementById('parcial-datahora').value;
     const valor = paraNumero(document.getElementById('parcial-valor').value);
-
     if (!operador || !datahora) {
         document.getElementById('parcial-status').textContent = 'Preencha nome do caixa e data/hora.';
-        return;
+        return false;
     }
-
     const parcial = { operador, datahora, valor };
     localStorage.setItem(CHAVE_PARCIAL, JSON.stringify(parcial));
-
     document.getElementById('parcial-total').textContent = formatarMoeda(valor);
     document.getElementById('parcial-status').textContent = 'Fechamento parcial salvo com sucesso.';
-
     carregarParcialNoFinal();
+    return true;
 }
 
 function salvarParcialEImprimir() {
-    salvarParcial();
-
+    const salvo = salvarParcial();
+    if (!salvo) return;
     const bruto = localStorage.getItem(CHAVE_PARCIAL);
-    if (!bruto) {
-        return;
-    }
-
+    if (!bruto) return;
     const parcial = JSON.parse(bruto);
-    const dados = {
-        parcialDataHora: parcial.datahora || '-',
-        parcialOperador: parcial.operador || '-',
-        parcialValor: paraNumero(parcial.valor),
-        finalOperador: parcial.operador || '-',
-        debito: 0,
-        credito: 0,
-        alimentacao: 0,
-        pix: 0,
-        transferencia: 0,
-        dinheiroAgenda: 0,
-        totalCartao: 0,
-        totalPixTransferencia: 0,
-        saidasManha: 0,
-        detalhesSaidasManha: [],
-        saidasTarde: 0,
-        total: 0,
-        saidas: 0,
-        diferenca: 0
-    };
 
-    preencherCupom(dados);
-    localStorage.setItem(CHAVE_ULTIMO_CUPOM, JSON.stringify(dados));
-    window.print();
+    const conteudo = gerarConteudoParcialTexto({
+        operador: parcial.operador || '-',
+        datahora: parcial.datahora || '-',
+        valor: paraNumero(parcial.valor)
+    });
+
+    gerarCupomElginArquivo(conteudo);
+    alert('Cupom do fechamento parcial gerado. Execute Imprimir-Elgin-i9.bat para imprimir e cortar.');
 }
 
 function carregarParcialNoFinal() {
@@ -102,47 +134,40 @@ function carregarParcialNoFinal() {
         document.getElementById('final-parcial-datahora').textContent = '-';
         return;
     }
-
     const parcial = JSON.parse(bruto);
     document.getElementById('final-parcial-valor').textContent = formatarMoeda(parcial.valor);
     document.getElementById('final-parcial-operador').textContent = parcial.operador || '-';
-    document.getElementById('final-parcial-datahora').textContent = parcial.datahora || '-';
+    document.getElementById('final-parcial-datahora').textContent = formatarDataHora(parcial.datahora || '-');
 }
 
 function adicionarSaidaManha(descricao = '', valor = '') {
     const lista = document.getElementById('saidas-manha-list');
     const item = document.createElement('div');
     item.className = 'subfield-item';
-
     const descricaoInput = document.createElement('input');
     descricaoInput.type = 'text';
     descricaoInput.className = 'saida-manha-descricao';
     descricaoInput.placeholder = 'Descrição (ex.: gasolina)';
     descricaoInput.value = descricao;
-
     const valorInput = document.createElement('input');
     valorInput.type = 'number';
     valorInput.className = 'saida-manha-valor';
     valorInput.placeholder = 'Valor';
     valorInput.step = '0.01';
     valorInput.value = valor;
-
     const removerBotao = document.createElement('button');
     removerBotao.type = 'button';
     removerBotao.className = 'remove-item-button';
     removerBotao.setAttribute('aria-label', 'Remover saída');
     removerBotao.textContent = 'Remover';
-
     valorInput.addEventListener('input', atualizarTotalSaidasManha);
     removerBotao.addEventListener('click', function () {
         item.remove();
         atualizarTotalSaidasManha();
     });
-
     item.appendChild(descricaoInput);
     item.appendChild(valorInput);
     item.appendChild(removerBotao);
-
     lista.appendChild(item);
     atualizarTotalSaidasManha();
 }
@@ -164,7 +189,6 @@ function preencherCupom(dados) {
     document.getElementById('print-parcial-datahora').textContent = formatarDataHora(dados.parcialDataHora);
     document.getElementById('print-parcial-operador').textContent = dados.parcialOperador || '-';
     document.getElementById('print-parcial-valor').textContent = formatarMoeda(dados.parcialValor);
-
     document.getElementById('print-final-operador').textContent = dados.finalOperador || '-';
     document.getElementById('print-debito').textContent = formatarMoeda(dados.debito);
     document.getElementById('print-credito').textContent = formatarMoeda(dados.credito);
@@ -172,7 +196,6 @@ function preencherCupom(dados) {
     document.getElementById('print-pix').textContent = formatarMoeda(dados.pix);
     document.getElementById('print-transferencia').textContent = formatarMoeda(dados.transferencia);
     document.getElementById('print-dinheiro-agenda').textContent = formatarMoeda(dados.dinheiroAgenda);
-
     document.getElementById('print-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('print-total-pix').textContent = formatarMoeda(dados.totalPixTransferencia);
     document.getElementById('print-saidas-manha-total').textContent = formatarMoeda(dados.saidasManha);
@@ -180,17 +203,14 @@ function preencherCupom(dados) {
     document.getElementById('print-total-final').textContent = formatarMoeda(dados.total);
     document.getElementById('print-saidas').textContent = formatarMoeda(dados.saidas);
     document.getElementById('print-diferenca').textContent = formatarMoeda(dados.diferenca);
-
     const lista = document.getElementById('print-saidas-manha-list');
     lista.innerHTML = '';
-
     if (!dados.detalhesSaidasManha.length) {
         const vazio = document.createElement('li');
         vazio.textContent = 'Sem lançamentos';
         lista.appendChild(vazio);
         return;
     }
-
     dados.detalhesSaidasManha.forEach(function (item) {
         const li = document.createElement('li');
         li.textContent = `${item.descricao}: ${formatarMoeda(item.valor)}`;
@@ -200,7 +220,6 @@ function preencherCupom(dados) {
 
 function montarDadosCupom() {
     const parcialSalvo = JSON.parse(localStorage.getItem(CHAVE_PARCIAL) || '{}');
-
     const debito = paraNumero(document.getElementById('cartao-debito').value);
     const credito = paraNumero(document.getElementById('cartao-credito').value);
     const alimentacao = paraNumero(document.getElementById('cartao-alimentacao').value);
@@ -209,13 +228,11 @@ function montarDadosCupom() {
     const dinheiroAgenda = paraNumero(document.getElementById('dinheiro-agenda').value);
     const saidasManha = paraNumero(document.getElementById('saidas-manha').value);
     const saidasTarde = paraNumero(document.getElementById('saidas-tarde').value);
-
     const totalCartao = debito + credito + alimentacao;
     const totalPixTransferencia = pix + transferencia;
     const total = totalCartao + totalPixTransferencia + dinheiroAgenda;
     const saidas = saidasManha + saidasTarde;
     const diferenca = total - saidas;
-
     return {
         parcialDataHora: parcialSalvo.datahora || document.getElementById('parcial-datahora').value,
         parcialOperador: parcialSalvo.operador || document.getElementById('parcial-operador').value || '-',
@@ -241,20 +258,16 @@ function montarDadosCupom() {
 function atualizarTotalSaidasManha() {
     const valores = document.querySelectorAll('.saida-manha-valor');
     let soma = 0;
-
     valores.forEach(function (input) {
         soma += paraNumero(input.value);
     });
-
     document.getElementById('saidas-manha').value = soma.toFixed(2);
 }
 
 function calcularFinal() {
     const dados = montarDadosCupom();
-
     document.getElementById('final-total').textContent = formatarMoeda(dados.total);
     document.getElementById('final-diferenca').textContent = formatarMoeda(dados.diferenca);
-
     preencherCupom(dados);
     return dados;
 }
@@ -262,7 +275,9 @@ function calcularFinal() {
 function imprimirFechamentoFinal() {
     const dados = calcularFinal();
     localStorage.setItem(CHAVE_ULTIMO_CUPOM, JSON.stringify(dados));
-    window.print();
+    const conteudo = gerarConteudoFinalTexto(dados);
+    gerarCupomElginArquivo(conteudo);
+    alert('Cupom do fechamento final gerado. Execute Imprimir-Elgin-i9.bat para imprimir e cortar.');
 }
 
 function reimprimirUltimoCupom() {
@@ -271,10 +286,11 @@ function reimprimirUltimoCupom() {
         alert('Nenhum cupom anterior encontrado para reimpressão.');
         return;
     }
-
     const dados = JSON.parse(bruto);
     preencherCupom(dados);
-    window.print();
+    const conteudo = gerarConteudoFinalTexto(dados);
+    gerarCupomElginArquivo(conteudo);
+    alert('Último cupom final regenerado. Execute Imprimir-Elgin-i9.bat para reimprimir com corte.');
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -284,10 +300,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const localISO = new Date(agora.getTime() - (agora.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
         campoDataHora.value = localISO;
     }
-
     adicionarSaidaManha('Gasolina', '0');
     atualizarTotalSaidasManha();
-
     const parcialBruto = localStorage.getItem(CHAVE_PARCIAL);
     if (parcialBruto) {
         const parcial = JSON.parse(parcialBruto);
@@ -297,7 +311,6 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('parcial-total').textContent = formatarMoeda(parcial.valor || 0);
         document.getElementById('parcial-status').textContent = 'Último fechamento parcial carregado.';
     }
-
     carregarParcialNoFinal();
     const defaultButton = document.querySelector('.tab-button[data-tab="parcial"]');
     openTab('parcial', defaultButton);
