@@ -64,6 +64,31 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (req.method === 'DELETE') {
+      const id = String(req.query?.id || req.url.split('/').pop() || '').trim();
+      if (!id) {
+        sendJson(res, 400, { error: 'id e obrigatorio para deletar.' });
+        return;
+      }
+
+      const body = await readJsonBody(req);
+      const senha = String(body.senha || '').trim();
+      const deletePassword = process.env.DELETE_PASSWORD || 'solar013';
+      
+      if (senha !== deletePassword) {
+        sendJson(res, 401, { error: 'Senha incorreta para deletar fechamento parcial.' });
+        return;
+      }
+
+      await sql`
+        DELETE FROM fechamentos_parciais
+        WHERE id = ${id}
+      `;
+
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
     sendJson(res, 405, { error: 'Metodo nao permitido.' });
   } catch (error) {
     sendJson(res, 500, { error: error.message || 'Erro interno.' });

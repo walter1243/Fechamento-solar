@@ -333,6 +333,7 @@ function renderizarListaHistorico(containerId, itens, tipo) {
             : `${formatarDataHora(item.createdAt || item.parcialDataHora)}<br>Inicial: ${item.parcialOperador || '-'} • Final: ${item.finalOperador || '-'}`;
         const visualizarAcao = tipo === 'parcial' ? `visualizarHistoricoParcial(${indice})` : `visualizarHistoricoFinal(${indice})`;
         const imprimirAcao = tipo === 'parcial' ? `imprimirHistoricoParcial(${indice})` : `imprimirHistoricoFinal(${indice})`;
+        const deletarAcao = tipo === 'parcial' ? `deletarHistoricoParcial(${indice})` : `deletarHistoricoFinal(${indice})`;
 
         return `
             <article class="history-item">
@@ -341,6 +342,7 @@ function renderizarListaHistorico(containerId, itens, tipo) {
                 <div class="history-item-actions">
                     <button type="button" class="action-button subtle" onclick="${visualizarAcao}">Visualizar</button>
                     <button type="button" class="action-button secondary" onclick="${imprimirAcao}">Imprimir</button>
+                    <button type="button" class="action-button subtle" onclick="${deletarAcao}" style="color: #ff6b6b;">✕ Deletar</button>
                 </div>
             </article>
         `;
@@ -377,6 +379,52 @@ async function imprimirHistoricoFinal(indice) {
     const conteudo = gerarConteudoFinalTexto(item);
     atualizarPreviewHistorico(conteudo);
     await imprimirOuGerarFallback(conteudo, 'do fechamento final historico');
+}
+
+async function deletarHistoricoParcial(indice) {
+    const item = historicoParciais[indice];
+    if (!item || !item.id) return;
+    
+    const confirmar = window.confirm(`Deletar fechamento parcial de ${item.operador}?`);
+    if (!confirmar) return;
+    
+    const senha = window.prompt('Digite a senha para confirmar a exclusão:');
+    if (senha === null || senha === '') return;
+    
+    try {
+        await requisicaoJson(`${URL_API_PARCIAIS}/${item.id}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ senha })
+        });
+        alert('Fechamento parcial deletado com sucesso.');
+        await carregarHistoricoPorData();
+    } catch (erro) {
+        console.error('Erro ao deletar parcial:', erro);
+        alert('Nao foi possivel deletar. Verifique a senha.');
+    }
+}
+
+async function deletarHistoricoFinal(indice) {
+    const item = historicoFinais[indice];
+    if (!item || !item.id) return;
+    
+    const confirmar = window.confirm(`Deletar fechamento final de ${item.finalOperador}?`);
+    if (!confirmar) return;
+    
+    const senha = window.prompt('Digite a senha para confirmar a exclusão:');
+    if (senha === null || senha === '') return;
+    
+    try {
+        await requisicaoJson(`${URL_API_FECHAMENTOS_FINAIS}/${item.id}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ senha })
+        });
+        alert('Fechamento final deletado com sucesso.');
+        await carregarHistoricoPorData();
+    } catch (erro) {
+        console.error('Erro ao deletar final:', erro);
+        alert('Nao foi possivel deletar. Verifique a senha.');
+    }
 }
 
 async function carregarHistoricoPorData() {

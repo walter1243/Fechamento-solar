@@ -71,6 +71,36 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (req.method === 'DELETE') {
+      const id = String(req.query?.id || req.url.split('/').pop() || '').trim();
+      if (!id) {
+        sendJson(res, 400, { error: 'id e obrigatorio para deletar.' });
+        return;
+      }
+
+      const body = await readJsonBody(req);
+      const senha = String(body.senha || '').trim();
+      const deletePassword = process.env.DELETE_PASSWORD || 'solar013';
+      
+      if (senha !== deletePassword) {
+        sendJson(res, 401, { error: 'Senha incorreta para deletar fechamento final.' });
+        return;
+      }
+
+      await sql`
+        DELETE FROM saidas_detalhes
+        WHERE fechamento_final_id = ${id}
+      `;
+
+      await sql`
+        DELETE FROM fechamentos_finais
+        WHERE id = ${id}
+      `;
+
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
     if (req.method !== 'POST') {
       sendJson(res, 405, { error: 'Metodo nao permitido.' });
       return;
