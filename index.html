@@ -9,22 +9,36 @@
 <body>
     <div class="container">
         <h1>Fechamento de Caixa</h1>
+        <p class="subtitle">Controle rapido para fechamento parcial e final do operador.</p>
         <div class="tabs">
-            <button class="tab-button" onclick="openTab('parcial')">Fechamento Parcial</button>
-            <button class="tab-button" onclick="openTab('final')">Fechamento Final</button>
+            <button type="button" class="tab-button" data-tab="parcial" onclick="openTab('parcial', this)">Fechamento Parcial</button>
+            <button type="button" class="tab-button" data-tab="final" onclick="openTab('final', this)">Fechamento Final</button>
         </div>
         <div id="parcial" class="tab-content">
             <h2>Fechamento Parcial</h2>
-            <form id="parcial-form">
-                <label for="parcial-valor">Valor:</label>
-                <input type="number" id="parcial-valor" name="parcial-valor" required>
-                <button type="button" onclick="calcularParcial()">Calcular</button>
-                <p>Total: <span id="parcial-total">0</span></p>
+            <form id="parcial-form" class="form-grid">
+                <label for="parcial-operador">Nome do Caixa:</label>
+                <input type="text" id="parcial-operador" name="parcial-operador" placeholder="Digite o nome do operador" required>
+
+                <label for="parcial-datahora">Data e Horário:</label>
+                <input type="datetime-local" id="parcial-datahora" name="parcial-datahora" required>
+
+                <label for="parcial-valor">Valor do Caixa:</label>
+                <input type="number" id="parcial-valor" name="parcial-valor" step="0.01" required>
+
+                <button type="button" class="action-button" onclick="salvarParcial()">Salvar Fechamento Parcial</button>
+                <p class="result-line">Valor salvo: <span id="parcial-total">R$ 0,00</span></p>
+                <p class="helper-line" id="parcial-status">Nenhum fechamento parcial salvo ainda.</p>
             </form>
         </div>
         <div id="final" class="tab-content" style="display:none;">
             <h2>Fechamento Final</h2>
-            <form id="final-form">
+            <div class="result-panel">
+                <p class="result-line">Caixa (parcial): <span id="final-parcial-valor">R$ 0,00</span></p>
+                <p class="result-line">Operador: <span id="final-parcial-operador">-</span></p>
+                <p class="result-line">Data/Hora: <span id="final-parcial-datahora">-</span></p>
+            </div>
+            <form id="final-form" class="form-grid">
                 <label for="operador">Operador de Caixa:</label>
                 <input type="text" id="operador" name="operador" required>
 
@@ -47,16 +61,52 @@
                 <input type="number" id="dinheiro-agenda" name="dinheiro-agenda" required>
 
                 <label for="saidas-manha">Saídas Manhã:</label>
-                <input type="number" id="saidas-manha" name="saidas-manha" required>
+                <input type="number" id="saidas-manha" name="saidas-manha" step="0.01" readonly>
+
+                <div class="subfields-wrapper">
+                    <p class="helper-line">Detalhes das saídas da manhã (ex.: gasolina, passagem)</p>
+                    <div id="saidas-manha-list" class="subfields-list"></div>
+                    <button type="button" class="action-button subtle" onclick="adicionarSaidaManha()">+ Adicionar saída da manhã</button>
+                </div>
 
                 <label for="saidas-tarde">Saídas Tarde:</label>
-                <input type="number" id="saidas-tarde" name="saidas-tarde" required>
+                <input type="number" id="saidas-tarde" name="saidas-tarde" step="0.01" required>
 
-                <button type="button" onclick="calcularFinal()">Calcular</button>
-                <p>Total: <span id="final-total">0</span></p>
-                <p>Diferença: <span id="final-diferenca">0</span></p>
+                <button type="button" class="action-button" onclick="calcularFinal()">Calcular</button>
+                <button type="button" class="action-button secondary" onclick="imprimirFechamentoFinal()">Imprimir Fechamento</button>
+                <button type="button" id="btn-reimprimir" class="action-button warning" onclick="reimprimirUltimoCupom()">Reimprimir Último Cupom</button>
+                <div class="result-panel">
+                    <p class="result-line">Total: <span id="final-total">0</span></p>
+                    <p class="result-line">Diferença: <span id="final-diferenca">0</span></p>
+                </div>
             </form>
         </div>
+
+        <section id="print-area" class="print-area">
+            <h3>RELATÓRIO DIÁRIO DE CAIXA</h3>
+            <p>Data/Hora Parcial: <span id="print-parcial-datahora">-</span></p>
+            <p>Nome do Caixa (Parcial): <span id="print-parcial-operador">-</span></p>
+            <p>Valor do Caixa (Parcial): <span id="print-parcial-valor">R$ 0,00</span></p>
+            <hr>
+            <p>Operador de Caixa (Final): <span id="print-final-operador">-</span></p>
+            <p>Cartão Débito: <span id="print-debito">R$ 0,00</span></p>
+            <p>Cartão Crédito: <span id="print-credito">R$ 0,00</span></p>
+            <p>Cartão Alimentação: <span id="print-alimentacao">R$ 0,00</span></p>
+            <p>PIX: <span id="print-pix">R$ 0,00</span></p>
+            <p>Transferência Bancária: <span id="print-transferencia">R$ 0,00</span></p>
+            <p>Dinheiro Agenda: <span id="print-dinheiro-agenda">R$ 0,00</span></p>
+            <p>Total Cartão: <span id="print-total-cartao">R$ 0,00</span></p>
+            <p>Total PIX/Transferência: <span id="print-total-pix">R$ 0,00</span></p>
+            <p>Saída Manhã (Total): <span id="print-saidas-manha-total">R$ 0,00</span></p>
+            <div id="print-saidas-manha-bloco">
+                <p>Detalhes Saídas Manhã:</p>
+                <ul id="print-saidas-manha-list"></ul>
+            </div>
+            <p>Saída Tarde: <span id="print-saidas-tarde">R$ 0,00</span></p>
+            <p>Total Final: <span id="print-total-final">R$ 0,00</span></p>
+            <p>Saídas (Manhã + Tarde): <span id="print-saidas">R$ 0,00</span></p>
+            <p>Diferença: <span id="print-diferenca">R$ 0,00</span></p>
+        </section>
     </div>
     <script src="script.js"></script>
 </body>

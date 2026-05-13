@@ -15,6 +15,11 @@
 			"label": "Corrigir origin e publicar no main",
 			"type": "shell",
 			"command": "git remote set-url origin https://github.com/walter1243/Fechamento-solar.git; git add .; git commit -m 'Atualizacao deploy Vercel'; git push -u origin HEAD:main"
+		},
+		{
+			"label": "Commit e push para Vercel",
+			"type": "shell",
+			"command": "git add .; git commit -m 'Atualiza fechamento, impressão completa e reimpressão'; git push -u origin HEAD:main"
 		}
 	]
 }
