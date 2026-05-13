@@ -40,8 +40,20 @@
                 <p class="result-line">Data/Hora: <span id="final-parcial-datahora">-</span></p>
             </div>
             <form id="final-form" class="form-grid">
-                <label for="operador">Operador de Caixa:</label>
-                <input type="text" id="operador" name="operador" required>
+                <label for="operador-parcial">Caixa de confirmação (parcial):</label>
+                <select id="operador-parcial" name="operador-parcial" required>
+                    <option value="">Selecione um caixa salvo no parcial</option>
+                </select>
+                <p class="helper-line">A lista mostra os nomes salvos no parcial com o valor correspondente.</p>
+
+                <label class="check-row" for="caixa-compartilhado">
+                    <input type="checkbox" id="caixa-compartilhado" name="caixa-compartilhado">
+                    Usar função caixa compartilhado
+                </label>
+
+                <label for="operador-final">Operador que está fechando agora:</label>
+                <input type="text" id="operador-final" name="operador-final" placeholder="Ex.: Walter" required>
+                <p class="helper-line">Se caixa compartilhado estiver marcado, ao escolher o parcial o sistema confirma seu nome para fechamento.</p>
 
                 <label for="cartao-debito">Cartão Débito:</label>
                 <input type="number" id="cartao-debito" name="cartao-debito" required>
@@ -89,7 +101,7 @@
                     <p class="result-line">Total Cartão: <span id="final-total-cartao">R$ 0,00</span></p>
                     <p class="result-line">Total PIX/Transferência: <span id="final-total-pix-transferencia">R$ 0,00</span></p>
                     <p class="result-line">Total Dinheiro (Sistema + Agenda): <span id="final-total-dinheiro">R$ 0,00</span></p>
-                    <p class="result-line">Total: <span id="final-total">0</span></p>
+                    <p class="result-line">Total (sem parcial): <span id="final-total">0</span></p>
                     <p class="result-line">Diferença: <span id="final-diferenca">0</span></p>
                 </div>
             </form>
@@ -103,6 +115,7 @@
             <p>Valor do Caixa (Parcial): <span id="print-parcial-valor">R$ 0,00</span></p>
             <hr>
             <p>Operador de Caixa (Final): <span id="print-final-operador">-</span></p>
+            <p id="print-compartilhado-info"></p>
             <p>Cartão Débito: <span id="print-debito">R$ 0,00</span></p>
             <p>Cartão Crédito: <span id="print-credito">R$ 0,00</span></p>
             <p id="print-alimentacao-row">Cartão Alimentação: <span id="print-alimentacao">R$ 0,00</span></p>
@@ -123,7 +136,7 @@
                 <p>Detalhes Saídas Tarde:</p>
                 <ul id="print-saidas-tarde-list"></ul>
             </div>
-            <p>Total Final: <span id="print-total-final">R$ 0,00</span></p>
+            <p>Total Final (sem parcial): <span id="print-total-final">R$ 0,00</span></p>
             <p>Saídas (Manhã + Tarde): <span id="print-saidas">R$ 0,00</span></p>
             <p>Diferença: <span id="print-diferenca"></span></p>
         </section>

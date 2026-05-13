@@ -1,4 +1,5 @@
 const CHAVE_PARCIAL = 'fechamento_parcial_v1';
+const CHAVE_PARCIAIS = 'fechamentos_parciais_v1';
 const CHAVE_ULTIMO_CUPOM = 'ultimo_cupom_v1';
 const URL_SERVICO_IMPRESSAO = 'http://127.0.0.1:8000/imprimir';
 
@@ -37,9 +38,9 @@ function gerarConteudoParcialTexto(parcial) {
         '',
         `Data/Hora: ${formatarDataHora(parcial.datahora)}`,
         '',
-        `Nome do Caixa: ${parcial.operador || '-'}`,
+        `Caixa Parcial: ${parcial.operador || '-'}`,
         '',
-        `Valor do Caixa: ${formatarMoeda(parcial.valor)}`,
+        `Valor Parcial: ${formatarMoeda(parcial.valor)}`,
         '',
         '--------------------------------',
         '',
@@ -69,6 +70,11 @@ function gerarConteudoFinalTexto(dados) {
         `Cartao Credito: ${formatarMoeda(dados.credito)}`,
         ''
     ];
+
+    if (dados.caixaCompartilhado) {
+        linhas.push(`Caixa Compartilhado: iniciou com ${dados.parcialOperador || '-'} (${formatarMoeda(dados.parcialValor)}) e terminou com ${dados.finalOperador || '-'}`);
+        linhas.push('');
+    }
 
     if (dados.alimentacao > 0) {
         linhas.push(`Cartao Alimentacao: ${formatarMoeda(dados.alimentacao)}`);
@@ -119,7 +125,7 @@ function gerarConteudoFinalTexto(dados) {
     }
 
     linhas.push('');
-    linhas.push(`Total Final: ${formatarMoeda(dados.total)}`);
+    linhas.push(`Total Final (sem parcial): ${formatarMoeda(dados.total)}`);
     linhas.push('');
     linhas.push(`Saidas (M+T): ${formatarMoeda(dados.saidas)}`);
     linhas.push('');
@@ -173,6 +179,88 @@ function openTab(tabName, clickedButton) {
     if (tabName === 'final') carregarParcialNoFinal();
 }
 
+function carregarListaParciais() {
+    try {
+        const lista = JSON.parse(localStorage.getItem(CHAVE_PARCIAIS) || '[]');
+        if (!Array.isArray(lista)) return [];
+        return lista
+            .filter(function (item) {
+                return item && item.operador;
+            })
+            .map(function (item) {
+                return {
+                    operador: String(item.operador).trim(),
+                    datahora: item.datahora || '',
+                    valor: paraNumero(item.valor)
+                };
+            });
+    } catch (_erro) {
+        return [];
+    }
+}
+
+function salvarListaParciais(lista) {
+    localStorage.setItem(CHAVE_PARCIAIS, JSON.stringify(lista));
+}
+
+function salvarOuAtualizarParcial(parcial) {
+    const chave = parcial.operador.trim().toLowerCase();
+    const listaAtual = carregarListaParciais();
+    const listaSemDuplicado = listaAtual.filter(function (item) {
+        return item.operador.trim().toLowerCase() !== chave;
+    });
+    listaSemDuplicado.unshift(parcial);
+    salvarListaParciais(listaSemDuplicado.slice(0, 30));
+}
+
+function popularOperadoresFinal() {
+    const select = document.getElementById('operador-parcial');
+    if (!select) return;
+
+    const valorAtual = select.value;
+    const listaParciais = carregarListaParciais();
+    select.innerHTML = '';
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Selecione um caixa salvo no parcial';
+    select.appendChild(placeholder);
+
+    listaParciais.forEach(function (parcial) {
+        const option = document.createElement('option');
+        option.value = parcial.operador;
+        option.textContent = `${parcial.operador} - ${formatarMoeda(parcial.valor)}`;
+        select.appendChild(option);
+    });
+
+    if (valorAtual && listaParciais.some(function (item) { return item.operador === valorAtual; })) {
+        select.value = valorAtual;
+    } else if (listaParciais.length) {
+        select.value = listaParciais[0].operador;
+    } else {
+        select.value = '';
+    }
+}
+
+function obterParcialSelecionadoNoFinal() {
+    const operadorSelecionado = (document.getElementById('operador-parcial').value || '').trim();
+    const listaParciais = carregarListaParciais();
+    const parcialSelecionado = listaParciais.find(function (item) {
+        return item.operador === operadorSelecionado;
+    });
+
+    if (parcialSelecionado) return parcialSelecionado;
+
+    const bruto = localStorage.getItem(CHAVE_PARCIAL);
+    if (!bruto) return null;
+    const parcialUnico = JSON.parse(bruto);
+    return {
+        operador: parcialUnico.operador || '-',
+        datahora: parcialUnico.datahora || '',
+        valor: paraNumero(parcialUnico.valor)
+    };
+}
+
 function salvarParcial() {
     const operador = document.getElementById('parcial-operador').value.trim();
     const datahora = document.getElementById('parcial-datahora').value;
@@ -183,6 +271,7 @@ function salvarParcial() {
     }
     const parcial = { operador, datahora, valor };
     localStorage.setItem(CHAVE_PARCIAL, JSON.stringify(parcial));
+    salvarOuAtualizarParcial(parcial);
     document.getElementById('parcial-total').textContent = formatarMoeda(valor);
     document.getElementById('parcial-status').textContent = 'Fechamento parcial salvo com sucesso.';
     carregarParcialNoFinal();
@@ -206,14 +295,14 @@ async function salvarParcialEImprimir() {
 }
 
 function carregarParcialNoFinal() {
-    const bruto = localStorage.getItem(CHAVE_PARCIAL);
-    if (!bruto) {
+    popularOperadoresFinal();
+    const parcial = obterParcialSelecionadoNoFinal();
+    if (!parcial) {
         document.getElementById('final-parcial-valor').textContent = 'R$ 0,00';
         document.getElementById('final-parcial-operador').textContent = '-';
         document.getElementById('final-parcial-datahora').textContent = '-';
         return;
     }
-    const parcial = JSON.parse(bruto);
     document.getElementById('final-parcial-valor').textContent = formatarMoeda(parcial.valor);
     document.getElementById('final-parcial-operador').textContent = parcial.operador || '-';
     document.getElementById('final-parcial-datahora').textContent = formatarDataHora(parcial.datahora || '-');
@@ -279,6 +368,10 @@ function preencherCupom(dados) {
     document.getElementById('print-parcial-operador').textContent = dados.parcialOperador || '-';
     document.getElementById('print-parcial-valor').textContent = formatarMoeda(dados.parcialValor);
     document.getElementById('print-final-operador').textContent = dados.finalOperador || '-';
+    const infoCompartilhado = document.getElementById('print-compartilhado-info');
+    infoCompartilhado.textContent = dados.caixaCompartilhado
+        ? `Caixa compartilhado: iniciou na manhã com ${dados.parcialOperador || '-'} (${formatarMoeda(dados.parcialValor)}) e terminou com ${dados.finalOperador || '-'}.`
+        : 'Caixa compartilhado: não';
     document.getElementById('print-debito').textContent = formatarMoeda(dados.debito);
     document.getElementById('print-credito').textContent = formatarMoeda(dados.credito);
     const rowAlimentacao = document.getElementById('print-alimentacao-row');
@@ -329,7 +422,9 @@ function preencherCupom(dados) {
 }
 
 function montarDadosCupom() {
-    const parcialSalvo = JSON.parse(localStorage.getItem(CHAVE_PARCIAL) || '{}');
+    const parcialSelecionado = obterParcialSelecionadoNoFinal() || {};
+    const caixaCompartilhado = !!document.getElementById('caixa-compartilhado').checked;
+    const finalOperadorInput = document.getElementById('operador-final').value.trim();
     const debito = paraNumero(document.getElementById('cartao-debito').value);
     const credito = paraNumero(document.getElementById('cartao-credito').value);
     const alimentacao = paraNumero(document.getElementById('cartao-alimentacao').value);
@@ -342,13 +437,15 @@ function montarDadosCupom() {
     const totalDinheiro = sistema + dinheiroAgenda;
     const totalCartao = debito + credito + alimentacao;
     const totalPixTransferencia = pix + transferencia;
+    // O valor do parcial eh somente referencia e nunca entra na soma final.
     const total = totalCartao + totalPixTransferencia + totalDinheiro;
     const saidas = saidasManha + saidasTarde;
     return {
-        parcialDataHora: parcialSalvo.datahora || document.getElementById('parcial-datahora').value,
-        parcialOperador: parcialSalvo.operador || document.getElementById('parcial-operador').value || '-',
-        parcialValor: paraNumero(parcialSalvo.valor),
-        finalOperador: document.getElementById('operador').value || parcialSalvo.operador || '-',
+        parcialDataHora: parcialSelecionado.datahora || document.getElementById('parcial-datahora').value,
+        parcialOperador: parcialSelecionado.operador || document.getElementById('parcial-operador').value || '-',
+        parcialValor: paraNumero(parcialSelecionado.valor),
+        finalOperador: finalOperadorInput || parcialSelecionado.operador || '-',
+        caixaCompartilhado,
         debito,
         credito,
         alimentacao,
@@ -369,6 +466,22 @@ function montarDadosCupom() {
     };
 }
 
+function confirmarOperadorFinalSeCompartilhado() {
+    const caixaCompartilhado = !!document.getElementById('caixa-compartilhado').checked;
+    if (!caixaCompartilhado) return true;
+
+    const campoNomeFinal = document.getElementById('operador-final');
+    if (campoNomeFinal.value.trim()) return true;
+
+    const nome = window.prompt('Caixa compartilhado ativo. Digite o nome de quem está fechando agora:');
+    if (!nome || !nome.trim()) {
+        alert('Informe o nome de quem está fechando para continuar.');
+        return false;
+    }
+    campoNomeFinal.value = nome.trim();
+    return true;
+}
+
 function atualizarTotalSaidas(periodo) {
     const valores = document.querySelectorAll(`#saidas-${periodo}-list .saida-valor`);
     let soma = 0;
@@ -381,6 +494,9 @@ function atualizarTotalSaidas(periodo) {
 }
 
 function calcularFinal() {
+    if (!confirmarOperadorFinalSeCompartilhado()) {
+        return null;
+    }
     const dados = montarDadosCupom();
     document.getElementById('final-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('final-total-pix-transferencia').textContent = formatarMoeda(dados.totalPixTransferencia);
@@ -393,6 +509,7 @@ function calcularFinal() {
 
 async function imprimirFechamentoFinal() {
     const dados = calcularFinal();
+    if (!dados) return;
     localStorage.setItem(CHAVE_ULTIMO_CUPOM, JSON.stringify(dados));
     const conteudo = gerarConteudoFinalTexto(dados);
     await imprimirOuGerarFallback(conteudo, 'do fechamento final');
@@ -430,6 +547,17 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('parcial-total').textContent = formatarMoeda(parcial.valor || 0);
         document.getElementById('parcial-status').textContent = 'Último fechamento parcial carregado.';
     }
+
+    const selectOperadorParcial = document.getElementById('operador-parcial');
+    if (selectOperadorParcial) {
+        selectOperadorParcial.addEventListener('change', function () {
+            carregarParcialNoFinal();
+            if (document.getElementById('caixa-compartilhado').checked) {
+                confirmarOperadorFinalSeCompartilhado();
+            }
+        });
+    }
+
     carregarParcialNoFinal();
     const defaultButton = document.querySelector('.tab-button[data-tab="parcial"]');
     openTab('parcial', defaultButton);
