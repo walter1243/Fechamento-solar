@@ -177,68 +177,69 @@ async function imprimirOuGerarFallback(conteudo, tipoCupom) {
 function openTab(tabName, clickedButton) {
     const tabs = document.querySelectorAll('.tab-content');
 
-    async function requisicaoJson(url, options = {}) {
-        const response = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...(options.headers || {})
-            },
-            ...options
-        });
-
-        if (!response.ok) {
-            throw new Error(`Falha na API (${response.status})`);
-        }
-
-        return response.json();
-    }
-
-    async function carregarParciaisDoBanco() {
-        try {
-            const resultado = await requisicaoJson(URL_API_PARCIAIS);
-            const lista = Array.isArray(resultado.items) ? resultado.items : [];
-            salvarListaParciais(lista);
-            if (lista.length) {
-                localStorage.setItem(CHAVE_PARCIAL, JSON.stringify(lista[0]));
-            }
-            return true;
-        } catch (erro) {
-            console.warn('Nao foi possivel carregar parciais do banco.', erro);
-            return false;
-        }
-    }
-
-    async function salvarParcialNoBanco(parcial) {
-        try {
-            await requisicaoJson(URL_API_PARCIAIS, {
-                method: 'POST',
-                body: JSON.stringify(parcial)
-            });
-            return true;
-        } catch (erro) {
-            console.warn('Nao foi possivel salvar parcial no banco.', erro);
-            return false;
-        }
-    }
-
-    async function salvarFechamentoFinalNoBanco(dados) {
-        try {
-            await requisicaoJson(URL_API_FECHAMENTOS_FINAIS, {
-                method: 'POST',
-                body: JSON.stringify(dados)
-            });
-            return true;
-        } catch (erro) {
-            console.warn('Nao foi possivel salvar fechamento final no banco.', erro);
-            return false;
-        }
-    }
     tabs.forEach(tab => tab.style.display = 'none');
     const buttons = document.querySelectorAll('.tab-button');
     buttons.forEach(button => button.classList.remove('active'));
     document.getElementById(tabName).style.display = 'block';
     if (clickedButton) clickedButton.classList.add('active');
     if (tabName === 'final') carregarParcialNoFinal();
+}
+
+async function requisicaoJson(url, options = {}) {
+    const response = await fetch(url, {
+        headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        },
+        ...options
+    });
+
+    if (!response.ok) {
+        throw new Error(`Falha na API (${response.status})`);
+    }
+
+    return response.json();
+}
+
+async function carregarParciaisDoBanco() {
+    try {
+        const resultado = await requisicaoJson(URL_API_PARCIAIS);
+        const lista = Array.isArray(resultado.items) ? resultado.items : [];
+        salvarListaParciais(lista);
+        if (lista.length) {
+            localStorage.setItem(CHAVE_PARCIAL, JSON.stringify(lista[0]));
+        }
+        return true;
+    } catch (erro) {
+        console.warn('Nao foi possivel carregar parciais do banco.', erro);
+        return false;
+    }
+}
+
+async function salvarParcialNoBanco(parcial) {
+    try {
+        await requisicaoJson(URL_API_PARCIAIS, {
+            method: 'POST',
+            body: JSON.stringify(parcial)
+        });
+        return true;
+    } catch (erro) {
+        console.warn('Nao foi possivel salvar parcial no banco.', erro);
+        return false;
+    }
+}
+
+async function salvarFechamentoFinalNoBanco(dados) {
+    try {
+        await requisicaoJson(URL_API_FECHAMENTOS_FINAIS, {
+            method: 'POST',
+            body: JSON.stringify(dados)
+        });
+        return true;
+    } catch (erro) {
+        console.warn('Nao foi possivel salvar fechamento final no banco.', erro);
+        return false;
+    }
 }
 
 function carregarListaParciais() {
