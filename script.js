@@ -59,6 +59,41 @@ function salvarParcial() {
     carregarParcialNoFinal();
 }
 
+function salvarParcialEImprimir() {
+    salvarParcial();
+
+    const bruto = localStorage.getItem(CHAVE_PARCIAL);
+    if (!bruto) {
+        return;
+    }
+
+    const parcial = JSON.parse(bruto);
+    const dados = {
+        parcialDataHora: parcial.datahora || '-',
+        parcialOperador: parcial.operador || '-',
+        parcialValor: paraNumero(parcial.valor),
+        finalOperador: parcial.operador || '-',
+        debito: 0,
+        credito: 0,
+        alimentacao: 0,
+        pix: 0,
+        transferencia: 0,
+        dinheiroAgenda: 0,
+        totalCartao: 0,
+        totalPixTransferencia: 0,
+        saidasManha: 0,
+        detalhesSaidasManha: [],
+        saidasTarde: 0,
+        total: 0,
+        saidas: 0,
+        diferenca: 0
+    };
+
+    preencherCupom(dados);
+    localStorage.setItem(CHAVE_ULTIMO_CUPOM, JSON.stringify(dados));
+    window.print();
+}
+
 function carregarParcialNoFinal() {
     const bruto = localStorage.getItem(CHAVE_PARCIAL);
     if (!bruto) {
