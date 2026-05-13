@@ -1,5 +1,6 @@
 const CHAVE_PARCIAL = 'fechamento_parcial_v1';
 const CHAVE_ULTIMO_CUPOM = 'ultimo_cupom_v1';
+const FILTROS_USB_ELGIN = [{ vendorId: 0x04b8 }, { vendorId: 0x0dd4 }];
 
 function formatarMoeda(valor) {
     return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
@@ -83,6 +84,72 @@ function gerarCupomElginArquivo(conteudo) {
     baixarArquivo('cupom-elgin.txt', conteudo);
 }
 
+function obterEndpointSaida(device) {
+    const interfaces = device.configuration.interfaces;
+    for (const intf of interfaces) {
+        for (const alt of intf.alternates) {
+            const endpointOut = alt.endpoints.find(function (ep) {
+                return ep.direction === 'out';
+            });
+
+            if (endpointOut) {
+                return { interfaceNumber: intf.interfaceNumber, endpointNumber: endpointOut.endpointNumber };
+            }
+        }
+    }
+
+    throw new Error('Nenhum endpoint de saída encontrado na impressora.');
+}
+
+async function enviarTextoParaElginUSB(texto) {
+    if (!('usb' in navigator)) {
+        throw new Error('Seu navegador não suporta WebUSB.');
+    }
+
+    const device = await navigator.usb.requestDevice({ filters: FILTROS_USB_ELGIN });
+    await device.open();
+
+    if (device.configuration === null) {
+        await device.selectConfiguration(1);
+    }
+
+    const endpointInfo = obterEndpointSaida(device);
+    await device.claimInterface(endpointInfo.interfaceNumber);
+
+    try {
+        const encoder = new TextEncoder();
+        const textoBytes = encoder.encode(texto.toUpperCase());
+
+        const init = new Uint8Array([0x1b, 0x40]);
+        const feed = new Uint8Array([0x1b, 0x64, 0x03]);
+        const corte = new Uint8Array([0x1d, 0x56, 0x00]);
+
+        await device.transferOut(endpointInfo.endpointNumber, init);
+        await device.transferOut(endpointInfo.endpointNumber, textoBytes);
+        await device.transferOut(endpointInfo.endpointNumber, feed);
+        await device.transferOut(endpointInfo.endpointNumber, corte);
+    } finally {
+        try {
+            await device.releaseInterface(endpointInfo.interfaceNumber);
+        } catch (e) {
+            // No-op
+        }
+
+        await device.close();
+    }
+}
+
+async function imprimirOuGerarFallback(conteudo, tipoCupom) {
+    try {
+        await enviarTextoParaElginUSB(conteudo);
+        alert(`Impressão ${tipoCupom} enviada com sucesso para a Elgin i9.`);
+    } catch (erro) {
+        console.error('Erro na impressão direta USB:', erro);
+        gerarCupomElginArquivo(conteudo);
+        alert('Falha na impressão USB. O arquivo cupom-elgin.txt foi gerado para impressão via BAT.');
+    }
+}
+
 function openTab(tabName, clickedButton) {
     const tabs = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => tab.style.display = 'none');
@@ -109,7 +176,7 @@ function salvarParcial() {
     return true;
 }
 
-function salvarParcialEImprimir() {
+async function salvarParcialEImprimir() {
     const salvo = salvarParcial();
     if (!salvo) return;
     const bruto = localStorage.getItem(CHAVE_PARCIAL);
@@ -122,8 +189,7 @@ function salvarParcialEImprimir() {
         valor: paraNumero(parcial.valor)
     });
 
-    gerarCupomElginArquivo(conteudo);
-    alert('Cupom do fechamento parcial gerado. Execute Imprimir-Elgin-i9.bat para imprimir e cortar.');
+    await imprimirOuGerarFallback(conteudo, 'do fechamento parcial');
 }
 
 function carregarParcialNoFinal() {
@@ -272,15 +338,14 @@ function calcularFinal() {
     return dados;
 }
 
-function imprimirFechamentoFinal() {
+async function imprimirFechamentoFinal() {
     const dados = calcularFinal();
     localStorage.setItem(CHAVE_ULTIMO_CUPOM, JSON.stringify(dados));
     const conteudo = gerarConteudoFinalTexto(dados);
-    gerarCupomElginArquivo(conteudo);
-    alert('Cupom do fechamento final gerado. Execute Imprimir-Elgin-i9.bat para imprimir e cortar.');
+    await imprimirOuGerarFallback(conteudo, 'do fechamento final');
 }
 
-function reimprimirUltimoCupom() {
+async function reimprimirUltimoCupom() {
     const bruto = localStorage.getItem(CHAVE_ULTIMO_CUPOM);
     if (!bruto) {
         alert('Nenhum cupom anterior encontrado para reimpressão.');
@@ -289,8 +354,7 @@ function reimprimirUltimoCupom() {
     const dados = JSON.parse(bruto);
     preencherCupom(dados);
     const conteudo = gerarConteudoFinalTexto(dados);
-    gerarCupomElginArquivo(conteudo);
-    alert('Último cupom final regenerado. Execute Imprimir-Elgin-i9.bat para reimprimir com corte.');
+    await imprimirOuGerarFallback(conteudo, 'final (reimpressão)');
 }
 
 document.addEventListener('DOMContentLoaded', function () {

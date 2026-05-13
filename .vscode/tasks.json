@@ -30,6 +30,11 @@
 			"label": "Commit e push impressão por aba",
 			"type": "shell",
 			"command": "git add .; git commit -m 'Separar impressão por aba: parcial e final'; git push -u origin HEAD:main"
+		},
+		{
+			"label": "Commit e push ajuste corte Elgin",
+			"type": "shell",
+			"command": "git add .; git commit -m 'Ajusta avanço de papel antes do corte na Elgin'; git push -u origin HEAD:main"
 		}
 	]
 }
