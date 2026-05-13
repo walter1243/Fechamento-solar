@@ -1,6 +1,6 @@
 const CHAVE_PARCIAL = 'fechamento_parcial_v1';
 const CHAVE_ULTIMO_CUPOM = 'ultimo_cupom_v1';
-const FILTROS_USB_ELGIN = [{ vendorId: 0x04b8 }, { vendorId: 0x0dd4 }];
+const URL_SERVICO_IMPRESSAO = 'http://127.0.0.1:8000/imprimir';
 
 function formatarMoeda(valor) {
     return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
@@ -83,70 +83,33 @@ function gerarConteudoFinalTexto(dados) {
 function gerarCupomElginArquivo(conteudo) {
     baixarArquivo('cupom-elgin.txt', conteudo);
 }
+async function imprimirViaServicoLocal(conteudo) {
+    const response = await fetch(URL_SERVICO_IMPRESSAO, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto: conteudo })
+    });
 
-function obterEndpointSaida(device) {
-    const interfaces = device.configuration.interfaces;
-    for (const intf of interfaces) {
-        for (const alt of intf.alternates) {
-            const endpointOut = alt.endpoints.find(function (ep) {
-                return ep.direction === 'out';
-            });
-
-            if (endpointOut) {
-                return { interfaceNumber: intf.interfaceNumber, endpointNumber: endpointOut.endpointNumber };
-            }
-        }
+    if (!response.ok) {
+        throw new Error(`Serviço respondeu com status ${response.status}.`);
     }
 
-    throw new Error('Nenhum endpoint de saída encontrado na impressora.');
-}
-
-async function enviarTextoParaElginUSB(texto) {
-    if (!('usb' in navigator)) {
-        throw new Error('Seu navegador não suporta WebUSB.');
+    const resultado = await response.json();
+    if (resultado.status !== 'Impresso com sucesso') {
+        throw new Error(resultado.detalhes || 'Falha ao imprimir via serviço local.');
     }
 
-    const device = await navigator.usb.requestDevice({ filters: FILTROS_USB_ELGIN });
-    await device.open();
-
-    if (device.configuration === null) {
-        await device.selectConfiguration(1);
-    }
-
-    const endpointInfo = obterEndpointSaida(device);
-    await device.claimInterface(endpointInfo.interfaceNumber);
-
-    try {
-        const encoder = new TextEncoder();
-        const textoBytes = encoder.encode(texto.toUpperCase());
-
-        const init = new Uint8Array([0x1b, 0x40]);
-        const feed = new Uint8Array([0x1b, 0x64, 0x03]);
-        const corte = new Uint8Array([0x1d, 0x56, 0x00]);
-
-        await device.transferOut(endpointInfo.endpointNumber, init);
-        await device.transferOut(endpointInfo.endpointNumber, textoBytes);
-        await device.transferOut(endpointInfo.endpointNumber, feed);
-        await device.transferOut(endpointInfo.endpointNumber, corte);
-    } finally {
-        try {
-            await device.releaseInterface(endpointInfo.interfaceNumber);
-        } catch (e) {
-            // No-op
-        }
-
-        await device.close();
-    }
+    return resultado;
 }
 
 async function imprimirOuGerarFallback(conteudo, tipoCupom) {
     try {
-        await enviarTextoParaElginUSB(conteudo);
+        await imprimirViaServicoLocal(conteudo);
         alert(`Impressão ${tipoCupom} enviada com sucesso para a Elgin i9.`);
     } catch (erro) {
-        console.error('Erro na impressão direta USB:', erro);
+        console.error('Erro na impressão via serviço local:', erro);
         gerarCupomElginArquivo(conteudo);
-        alert('Falha na impressão USB. O arquivo cupom-elgin.txt foi gerado para impressão via BAT.');
+        alert('O serviço local de impressão não está rodando ou falhou. O arquivo cupom-elgin.txt foi gerado para impressão via BAT.');
     }
 }
 
