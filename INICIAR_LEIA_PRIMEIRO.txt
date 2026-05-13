@@ -1,0 +1,89 @@
+# 🚀 INICIAR SISTEMA DE IMPRESSÃO - GUIA RÁPIDO
+
+## ⚡ FORMA MAIS RÁPIDA (COM 1 CLIQUE)
+
+### Windows:
+1. **Clique 2x em:** `iniciar_sistema.bat`
+2. Pronto! Tudo vai iniciar automaticamente:
+   - ✅ Serviço de impressão Python rodando
+   - ✅ Navegador Chrome/Edge abre com o site
+
+## 📋 O QUE O ARQUIVO .BAT FAZ:
+
+1. **Verifica** se Python está instalado
+2. **Inicia** o serviço de impressão (`impressora_service.py`)
+3. **Abre** o site no Chrome (ou Edge/navegador padrão)
+4. **Exibe** mensagens de status
+
+## 📝 INSTRUÇÕES PASSO-A-PASSO:
+
+### Primeira vez usando:
+1. Certifique que Python 3.x está instalado
+2. Abra a pasta do projeto
+3. Clique 2x em `iniciar_sistema.bat`
+4. Uma janela preta vai aparecer (serviço rodando)
+5. Chrome vai abrir automaticamente
+
+### Durante o uso:
+- **NÃO FECHE** a janela preta (serviço de impressão)
+- Use o site normalmente
+- Todos os botões "Imprimir" vão funcionar
+
+### Quando terminar:
+- Feche o navegador
+- Feche a janela preta (clique no X)
+- Pronto!
+
+## ❌ SE NÃO FUNCIONAR:
+
+### "Python não encontrado"
+- Instale Python: https://www.python.org/downloads/
+- Na instalação, MARQUE: ✓ "Add Python to PATH"
+
+### "Chrome não encontrado"
+- O arquivo tentará usar Chrome, depois Edge, depois navegador padrão
+- Se nenhum abrir, abra manualmente: `file:///C:/Users/USER/Documents/app fechamento/index.html`
+
+### "Erro de permissão"
+- Clique com botão direito no `.bat` e selecione "Executar como administrador"
+
+## 🔧 ARQUIVOS DO PROJETO:
+
+```
+app fechamento/
+├── iniciar_sistema.bat         ← CLIQUE AQUI! 🚀
+├── index.html                  ← Site (é aberto automaticamente)
+├── script.js                   ← Lógica do site
+├── styles.css                  ← Design
+├── impressora_service.py        ← Serviço de impressão (Python)
+├── api/                        ← APIs (servidor online)
+└── ...outros arquivos
+```
+
+## 💡 DICAS:
+
+1. **Crie um atalho:**
+   - Clique direito em `iniciar_sistema.bat`
+   - Enviar para → Área de trabalho
+   - Agora pode iniciar de lá!
+
+2. **Fixe na barra de tarefas:**
+   - Clique direito no .bat
+   - "Fixar na barra de tarefas do Windows"
+   - Acesso mais rápido!
+
+3. **Crie um ícone personalizado:**
+   - Clique direito no .bat
+   - Propriedades
+   - Personalizar ícone (procure por printer icon)
+
+## 📞 SUPORTE:
+
+Se tiver problemas:
+1. Abra a janela preta que aparece
+2. Veja que mensagens de erro aparecem
+3. Envie a mensagem de erro para suporte
+
+---
+
+**Desenvolvido com ❤️ para o Fechamento Solar**
