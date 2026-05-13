@@ -130,6 +130,21 @@ form input:focus {
     box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
 }
 
+.highlight-label {
+    color: #fde68a;
+    font-weight: 700;
+}
+
+.highlight-input {
+    border-color: rgba(245, 158, 11, 0.8);
+    background: rgba(245, 158, 11, 0.12);
+}
+
+.highlight-input:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+}
+
 .action-button {
     margin-top: 8px;
     width: 100%;

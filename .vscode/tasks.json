@@ -35,6 +35,49 @@
 			"label": "Commit e push ajuste corte Elgin",
 			"type": "shell",
 			"command": "git add .; git commit -m 'Ajusta avanço de papel antes do corte na Elgin'; git push -u origin HEAD:main"
+		},
+		{
+			"label": "Verificar status Git remoto",
+			"type": "shell",
+			"command": "git status -sb"
+		},
+		{
+			"label": "Publicar versão correta da impressão",
+			"type": "shell",
+			"command": "git add index.html script.js impressora_service.py requirements.txt; git commit -m 'Troca WebUSB por serviço local de impressão'; git push -u origin HEAD:main"
+		},
+		{
+			"label": "Commit ajustes de campos e saídas",
+			"type": "shell",
+			"command": "git add index.html script.js; git commit -m 'Adiciona sistema, saídas tarde detalhadas e campos opcionais'"
+		},
+		{
+			"label": "Push ajustes para main",
+			"type": "shell",
+			"command": "git push -u origin HEAD:main"
+		},
+		{
+			"label": "Commit e push total cartão",
+			"type": "shell",
+			"command": "git add index.html script.js; git commit -m 'Adiciona exibição de total cartão e total pix/transferência'; git push -u origin HEAD:main"
+		},
+		{
+			"label": "Commit e push para Vercel agora",
+			"type": "shell",
+			"command": "git add index.html script.js styles.css impressora_service.py .vscode/tasks.json && git commit -m \"feat: ajustes finais de cálculo, UI destacada e impressão completa\" && git push -u origin HEAD:main",
+			"isBackground": false
+		},
+		{
+			"label": "Commit e push para Vercel agora powershell",
+			"type": "shell",
+			"command": "git add index.html script.js styles.css impressora_service.py .vscode/tasks.json; git commit -m \"feat: ajustes finais de cálculo, UI destacada e impressão completa\"; git push -u origin HEAD:main",
+			"isBackground": false
+		},
+		{
+			"label": "Commit correto e push main",
+			"type": "shell",
+			"command": "git add index.html script.js styles.css impressora_service.py .vscode/tasks.json; git commit -m 'feat: ajustes finais formulário, cálculo e impressão'; git push -u origin HEAD:main",
+			"isBackground": false
 		}
 	]
 }

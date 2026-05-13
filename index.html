@@ -58,8 +58,8 @@
                 <label for="transferencia">Transferência Bancária:</label>
                 <input type="number" id="transferencia" name="transferencia">
 
-                <label for="sistema">Sistema (dinheiro que entrou no caixa):</label>
-                <input type="number" id="sistema" name="sistema" step="0.01" required>
+                <label for="sistema" class="highlight-label">Sistema (dinheiro que entrou no caixa):</label>
+                <input type="number" id="sistema" name="sistema" step="0.01" class="highlight-input" required>
 
                 <label for="dinheiro-agenda">Dinheiro Agenda (nota fiado recebida):</label>
                 <input type="number" id="dinheiro-agenda" name="dinheiro-agenda" required>
@@ -88,6 +88,7 @@
                 <div class="result-panel">
                     <p class="result-line">Total Cartão: <span id="final-total-cartao">R$ 0,00</span></p>
                     <p class="result-line">Total PIX/Transferência: <span id="final-total-pix-transferencia">R$ 0,00</span></p>
+                    <p class="result-line">Total Dinheiro (Sistema + Agenda): <span id="final-total-dinheiro">R$ 0,00</span></p>
                     <p class="result-line">Total: <span id="final-total">0</span></p>
                     <p class="result-line">Diferença: <span id="final-diferenca">0</span></p>
                 </div>
@@ -109,6 +110,7 @@
             <p>Transferência Bancária: <span id="print-transferencia">R$ 0,00</span></p>
             <p>Sistema: <span id="print-sistema">R$ 0,00</span></p>
             <p>Dinheiro Agenda: <span id="print-dinheiro-agenda">R$ 0,00</span></p>
+            <p>Total Dinheiro (Sistema + Agenda): <span id="print-total-dinheiro">R$ 0,00</span></p>
             <p>Total Cartão: <span id="print-total-cartao">R$ 0,00</span></p>
             <p>Total PIX/Transferência: <span id="print-total-pix">R$ 0,00</span></p>
             <p>Saída Manhã (Total): <span id="print-saidas-manha-total">R$ 0,00</span></p>

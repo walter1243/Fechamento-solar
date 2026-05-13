@@ -78,6 +78,8 @@ function gerarConteudoFinalTexto(dados) {
         '',
         `Dinheiro Agenda: ${formatarMoeda(dados.dinheiroAgenda)}`,
         '',
+        `Total Dinheiro (Sistema + Agenda): ${formatarMoeda(dados.totalDinheiro)}`,
+        '',
         `Total Cartao: ${formatarMoeda(dados.totalCartao)}`,
         '',
         `Total PIX/Transf: ${formatarMoeda(dados.totalPixTransferencia)}`,
@@ -276,6 +278,7 @@ function preencherCupom(dados) {
     document.getElementById('print-transferencia').textContent = formatarMoeda(dados.transferencia);
     document.getElementById('print-sistema').textContent = formatarMoeda(dados.sistema);
     document.getElementById('print-dinheiro-agenda').textContent = formatarMoeda(dados.dinheiroAgenda);
+    document.getElementById('print-total-dinheiro').textContent = formatarMoeda(dados.totalDinheiro);
     document.getElementById('print-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('print-total-pix').textContent = formatarMoeda(dados.totalPixTransferencia);
     document.getElementById('print-saidas-manha-total').textContent = formatarMoeda(dados.saidasManha);
@@ -289,13 +292,13 @@ function preencherCupom(dados) {
         const vazio = document.createElement('li');
         vazio.textContent = 'Sem lançamentos';
         lista.appendChild(vazio);
-        return;
+    } else {
+        dados.detalhesSaidasManha.forEach(function (item) {
+            const li = document.createElement('li');
+            li.textContent = `${item.descricao}: ${formatarMoeda(item.valor)}`;
+            lista.appendChild(li);
+        });
     }
-    dados.detalhesSaidasManha.forEach(function (item) {
-        const li = document.createElement('li');
-        li.textContent = `${item.descricao}: ${formatarMoeda(item.valor)}`;
-        lista.appendChild(li);
-    });
 
     const listaTarde = document.getElementById('print-saidas-tarde-list');
     listaTarde.innerHTML = '';
@@ -324,9 +327,10 @@ function montarDadosCupom() {
     const dinheiroAgenda = paraNumero(document.getElementById('dinheiro-agenda').value);
     const saidasManha = paraNumero(document.getElementById('saidas-manha').value);
     const saidasTarde = paraNumero(document.getElementById('saidas-tarde').value);
+    const totalDinheiro = sistema + dinheiroAgenda;
     const totalCartao = debito + credito + alimentacao;
     const totalPixTransferencia = pix + transferencia;
-    const total = totalCartao + totalPixTransferencia + sistema + dinheiroAgenda;
+    const total = totalCartao + totalPixTransferencia + totalDinheiro;
     const saidas = saidasManha + saidasTarde;
     const diferenca = total - saidas;
     return {
@@ -341,6 +345,7 @@ function montarDadosCupom() {
         transferencia,
         sistema,
         dinheiroAgenda,
+        totalDinheiro,
         totalCartao,
         totalPixTransferencia,
         saidasManha,
@@ -368,6 +373,7 @@ function calcularFinal() {
     const dados = montarDadosCupom();
     document.getElementById('final-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('final-total-pix-transferencia').textContent = formatarMoeda(dados.totalPixTransferencia);
+    document.getElementById('final-total-dinheiro').textContent = formatarMoeda(dados.totalDinheiro);
     document.getElementById('final-total').textContent = formatarMoeda(dados.total);
     document.getElementById('final-diferenca').textContent = formatarMoeda(dados.diferenca);
     preencherCupom(dados);
