@@ -482,6 +482,17 @@ function confirmarOperadorFinalSeCompartilhado() {
     return true;
 }
 
+function atualizarVisibilidadeOperadorFinal() {
+    const caixaCompartilhado = !!document.getElementById('caixa-compartilhado').checked;
+    const blocoOperadorFinal = document.getElementById('bloco-operador-final');
+    const campoNomeFinal = document.getElementById('operador-final');
+
+    blocoOperadorFinal.style.display = caixaCompartilhado ? 'block' : 'none';
+    if (!caixaCompartilhado) {
+        campoNomeFinal.value = '';
+    }
+}
+
 function atualizarTotalSaidas(periodo) {
     const valores = document.querySelectorAll(`#saidas-${periodo}-list .saida-valor`);
     let soma = 0;
@@ -557,6 +568,18 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    const checkboxCompartilhado = document.getElementById('caixa-compartilhado');
+    if (checkboxCompartilhado) {
+        checkboxCompartilhado.addEventListener('change', function () {
+            atualizarVisibilidadeOperadorFinal();
+            if (checkboxCompartilhado.checked) {
+                confirmarOperadorFinalSeCompartilhado();
+            }
+        });
+    }
+
+    atualizarVisibilidadeOperadorFinal();
 
     carregarParcialNoFinal();
     const defaultButton = document.querySelector('.tab-button[data-tab="parcial"]');

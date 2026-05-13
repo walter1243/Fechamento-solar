@@ -51,9 +51,11 @@
                     Usar função caixa compartilhado
                 </label>
 
-                <label for="operador-final">Operador que está fechando agora:</label>
-                <input type="text" id="operador-final" name="operador-final" placeholder="Ex.: Walter" required>
-                <p class="helper-line">Se caixa compartilhado estiver marcado, ao escolher o parcial o sistema confirma seu nome para fechamento.</p>
+                <div id="bloco-operador-final" style="display: none;">
+                    <label for="operador-final">Operador que está fechando agora:</label>
+                    <input type="text" id="operador-final" name="operador-final" placeholder="Ex.: Walter">
+                    <p class="helper-line">Se caixa compartilhado estiver marcado, ao escolher o parcial o sistema confirma seu nome para fechamento.</p>
+                </div>
 
                 <label for="cartao-debito">Cartão Débito:</label>
                 <input type="number" id="cartao-debito" name="cartao-debito" required>
