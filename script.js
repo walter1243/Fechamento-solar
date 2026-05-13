@@ -67,27 +67,35 @@ function gerarConteudoFinalTexto(dados) {
         `Cartao Debito: ${formatarMoeda(dados.debito)}`,
         '',
         `Cartao Credito: ${formatarMoeda(dados.credito)}`,
-        '',
-        `Cartao Alimentacao: ${formatarMoeda(dados.alimentacao)}`,
-        '',
-        `PIX: ${formatarMoeda(dados.pix)}`,
-        '',
-        `Transferencia: ${formatarMoeda(dados.transferencia)}`,
-        '',
-        `Sistema: ${formatarMoeda(dados.sistema)}`,
-        '',
-        `Dinheiro Agenda: ${formatarMoeda(dados.dinheiroAgenda)}`,
-        '',
-        `Total Dinheiro (Sistema + Agenda): ${formatarMoeda(dados.totalDinheiro)}`,
-        '',
-        `Total Cartao: ${formatarMoeda(dados.totalCartao)}`,
-        '',
-        `Total PIX/Transf: ${formatarMoeda(dados.totalPixTransferencia)}`,
-        '',
-        `Saidas Manha Total: ${formatarMoeda(dados.saidasManha)}`,
-        '',
-        'Detalhes Saidas Manha:'
+        ''
     ];
+
+    if (dados.alimentacao > 0) {
+        linhas.push(`Cartao Alimentacao: ${formatarMoeda(dados.alimentacao)}`);
+        linhas.push('');
+    }
+
+    linhas.push(`PIX: ${formatarMoeda(dados.pix)}`);
+    linhas.push('');
+
+    if (dados.transferencia > 0) {
+        linhas.push(`Transferencia: ${formatarMoeda(dados.transferencia)}`);
+        linhas.push('');
+    }
+
+    linhas.push(`Sistema: ${formatarMoeda(dados.sistema)}`);
+    linhas.push('');
+    linhas.push(`Dinheiro Agenda: ${formatarMoeda(dados.dinheiroAgenda)}`);
+    linhas.push('');
+    linhas.push(`Total Dinheiro (Sistema + Agenda): ${formatarMoeda(dados.totalDinheiro)}`);
+    linhas.push('');
+    linhas.push(`Total Cartao: ${formatarMoeda(dados.totalCartao)}`);
+    linhas.push('');
+    linhas.push(`Total PIX/Transf: ${formatarMoeda(dados.totalPixTransferencia)}`);
+    linhas.push('');
+    linhas.push(`Saidas Manha Total: ${formatarMoeda(dados.saidasManha)}`);
+    linhas.push('');
+    linhas.push('Detalhes Saidas Manha:');
 
     if (!dados.detalhesSaidasManha.length) {
         linhas.push('- Sem lancamentos');
@@ -115,7 +123,7 @@ function gerarConteudoFinalTexto(dados) {
     linhas.push('');
     linhas.push(`Saidas (M+T): ${formatarMoeda(dados.saidas)}`);
     linhas.push('');
-    linhas.push(`Diferenca: ${formatarMoeda(dados.diferenca)}`);
+    linhas.push('Diferenca:');
     linhas.push('');
     linhas.push('--------------------------------');
     linhas.push('');
@@ -273,8 +281,12 @@ function preencherCupom(dados) {
     document.getElementById('print-final-operador').textContent = dados.finalOperador || '-';
     document.getElementById('print-debito').textContent = formatarMoeda(dados.debito);
     document.getElementById('print-credito').textContent = formatarMoeda(dados.credito);
+    const rowAlimentacao = document.getElementById('print-alimentacao-row');
+    rowAlimentacao.style.display = dados.alimentacao > 0 ? 'block' : 'none';
     document.getElementById('print-alimentacao').textContent = formatarMoeda(dados.alimentacao);
     document.getElementById('print-pix').textContent = formatarMoeda(dados.pix);
+    const rowTransferencia = document.getElementById('print-transferencia-row');
+    rowTransferencia.style.display = dados.transferencia > 0 ? 'block' : 'none';
     document.getElementById('print-transferencia').textContent = formatarMoeda(dados.transferencia);
     document.getElementById('print-sistema').textContent = formatarMoeda(dados.sistema);
     document.getElementById('print-dinheiro-agenda').textContent = formatarMoeda(dados.dinheiroAgenda);
@@ -285,7 +297,7 @@ function preencherCupom(dados) {
     document.getElementById('print-saidas-tarde').textContent = formatarMoeda(dados.saidasTarde);
     document.getElementById('print-total-final').textContent = formatarMoeda(dados.total);
     document.getElementById('print-saidas').textContent = formatarMoeda(dados.saidas);
-    document.getElementById('print-diferenca').textContent = formatarMoeda(dados.diferenca);
+    document.getElementById('print-diferenca').textContent = '';
     const lista = document.getElementById('print-saidas-manha-list');
     lista.innerHTML = '';
     if (!dados.detalhesSaidasManha.length) {
@@ -332,7 +344,6 @@ function montarDadosCupom() {
     const totalPixTransferencia = pix + transferencia;
     const total = totalCartao + totalPixTransferencia + totalDinheiro;
     const saidas = saidasManha + saidasTarde;
-    const diferenca = total - saidas;
     return {
         parcialDataHora: parcialSalvo.datahora || document.getElementById('parcial-datahora').value,
         parcialOperador: parcialSalvo.operador || document.getElementById('parcial-operador').value || '-',
@@ -354,7 +365,7 @@ function montarDadosCupom() {
         detalhesSaidasTarde: obterDetalhesSaidas('tarde'),
         total,
         saidas,
-        diferenca
+        diferenca: null
     };
 }
 
@@ -375,7 +386,7 @@ function calcularFinal() {
     document.getElementById('final-total-pix-transferencia').textContent = formatarMoeda(dados.totalPixTransferencia);
     document.getElementById('final-total-dinheiro').textContent = formatarMoeda(dados.totalDinheiro);
     document.getElementById('final-total').textContent = formatarMoeda(dados.total);
-    document.getElementById('final-diferenca').textContent = formatarMoeda(dados.diferenca);
+    document.getElementById('final-diferenca').textContent = '';
     preencherCupom(dados);
     return dados;
 }

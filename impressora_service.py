@@ -30,6 +30,7 @@ def imprimir_direto(cupom: Cupom):
 
         # ESC/POS: fonte mais alta e maior espacamento para melhorar leitura
         inicializar = b"\x1b\x40"
+        alinhar_esquerda = b"\x1b\x61\x00"
         tamanho_fonte = b"\x1d\x21\x10"  # altura 2x, largura normal
         espacamento_linha = b"\x1b\x33\x28"  # 40 dots
         restaurar_padrao = b"\x1d\x21\x00\x1b\x32"
@@ -37,6 +38,7 @@ def imprimir_direto(cupom: Cupom):
         win32print.StartDocPrinter(h_printer, 1, ("Fechamento Solar", None, "RAW"))
         win32print.StartPagePrinter(h_printer)
         win32print.WritePrinter(h_printer, inicializar)
+        win32print.WritePrinter(h_printer, alinhar_esquerda)
         win32print.WritePrinter(h_printer, tamanho_fonte)
         win32print.WritePrinter(h_printer, espacamento_linha)
         win32print.WritePrinter(h_printer, cupom.texto.encode("cp850", errors="replace"))
