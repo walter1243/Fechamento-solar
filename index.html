@@ -50,15 +50,18 @@
                 <input type="number" id="cartao-credito" name="cartao-credito" required>
 
                 <label for="cartao-alimentacao">Cartão Alimentação:</label>
-                <input type="number" id="cartao-alimentacao" name="cartao-alimentacao" required>
+                <input type="number" id="cartao-alimentacao" name="cartao-alimentacao">
 
                 <label for="pix">PIX:</label>
                 <input type="number" id="pix" name="pix" required>
 
                 <label for="transferencia">Transferência Bancária:</label>
-                <input type="number" id="transferencia" name="transferencia" required>
+                <input type="number" id="transferencia" name="transferencia">
 
-                <label for="dinheiro-agenda">Dinheiro Agenda:</label>
+                <label for="sistema">Sistema (dinheiro que entrou no caixa):</label>
+                <input type="number" id="sistema" name="sistema" step="0.01" required>
+
+                <label for="dinheiro-agenda">Dinheiro Agenda (nota fiado recebida):</label>
                 <input type="number" id="dinheiro-agenda" name="dinheiro-agenda" required>
 
                 <label for="saidas-manha">Saídas Manhã:</label>
@@ -71,7 +74,13 @@
                 </div>
 
                 <label for="saidas-tarde">Saídas Tarde:</label>
-                <input type="number" id="saidas-tarde" name="saidas-tarde" step="0.01" required>
+                <input type="number" id="saidas-tarde" name="saidas-tarde" step="0.01" readonly>
+
+                <div class="subfields-wrapper">
+                    <p class="helper-line">Detalhes das saídas da tarde (ex.: passagem, lanche)</p>
+                    <div id="saidas-tarde-list" class="subfields-list"></div>
+                    <button type="button" class="action-button subtle" onclick="adicionarSaidaTarde()">+ Adicionar saída da tarde</button>
+                </div>
 
                 <button type="button" class="action-button" onclick="calcularFinal()">Calcular</button>
                 <button type="button" class="action-button secondary" onclick="imprimirFechamentoFinal()">Gerar Cupom Elgin (c/ corte)</button>
@@ -96,6 +105,7 @@
             <p>Cartão Alimentação: <span id="print-alimentacao">R$ 0,00</span></p>
             <p>PIX: <span id="print-pix">R$ 0,00</span></p>
             <p>Transferência Bancária: <span id="print-transferencia">R$ 0,00</span></p>
+            <p>Sistema: <span id="print-sistema">R$ 0,00</span></p>
             <p>Dinheiro Agenda: <span id="print-dinheiro-agenda">R$ 0,00</span></p>
             <p>Total Cartão: <span id="print-total-cartao">R$ 0,00</span></p>
             <p>Total PIX/Transferência: <span id="print-total-pix">R$ 0,00</span></p>
@@ -105,6 +115,10 @@
                 <ul id="print-saidas-manha-list"></ul>
             </div>
             <p>Saída Tarde: <span id="print-saidas-tarde">R$ 0,00</span></p>
+            <div id="print-saidas-tarde-bloco">
+                <p>Detalhes Saídas Tarde:</p>
+                <ul id="print-saidas-tarde-list"></ul>
+            </div>
             <p>Total Final: <span id="print-total-final">R$ 0,00</span></p>
             <p>Saídas (Manhã + Tarde): <span id="print-saidas">R$ 0,00</span></p>
             <p>Diferença: <span id="print-diferenca">R$ 0,00</span></p>

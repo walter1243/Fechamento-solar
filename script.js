@@ -32,11 +32,17 @@ function baixarArquivo(nomeArquivo, conteudo) {
 function gerarConteudoParcialTexto(parcial) {
     const linhas = [
         'FECHAMENTO PARCIAL',
+        '',
         '--------------------------------',
+        '',
         `Data/Hora: ${formatarDataHora(parcial.datahora)}`,
+        '',
         `Nome do Caixa: ${parcial.operador || '-'}`,
+        '',
         `Valor do Caixa: ${formatarMoeda(parcial.valor)}`,
+        '',
         '--------------------------------',
+        '',
         ''
     ];
     return linhas.join('\r\n');
@@ -45,21 +51,39 @@ function gerarConteudoParcialTexto(parcial) {
 function gerarConteudoFinalTexto(dados) {
     const linhas = [
         'FECHAMENTO FINAL',
+        '',
         '--------------------------------',
+        '',
         `Data/Hora Parcial: ${formatarDataHora(dados.parcialDataHora)}`,
+        '',
         `Caixa Parcial: ${dados.parcialOperador || '-'}`,
+        '',
         `Valor Parcial: ${formatarMoeda(dados.parcialValor)}`,
+        '',
         '--------------------------------',
+        '',
         `Operador Final: ${dados.finalOperador || '-'}`,
+        '',
         `Cartao Debito: ${formatarMoeda(dados.debito)}`,
+        '',
         `Cartao Credito: ${formatarMoeda(dados.credito)}`,
+        '',
         `Cartao Alimentacao: ${formatarMoeda(dados.alimentacao)}`,
+        '',
         `PIX: ${formatarMoeda(dados.pix)}`,
+        '',
         `Transferencia: ${formatarMoeda(dados.transferencia)}`,
+        '',
+        `Sistema: ${formatarMoeda(dados.sistema)}`,
+        '',
         `Dinheiro Agenda: ${formatarMoeda(dados.dinheiroAgenda)}`,
+        '',
         `Total Cartao: ${formatarMoeda(dados.totalCartao)}`,
+        '',
         `Total PIX/Transf: ${formatarMoeda(dados.totalPixTransferencia)}`,
+        '',
         `Saidas Manha Total: ${formatarMoeda(dados.saidasManha)}`,
+        '',
         'Detalhes Saidas Manha:'
     ];
 
@@ -71,10 +95,26 @@ function gerarConteudoFinalTexto(dados) {
         });
     }
 
-    linhas.push(`Saidas Tarde: ${formatarMoeda(dados.saidasTarde)}`);
+    linhas.push('');
+    linhas.push(`Saidas Tarde Total: ${formatarMoeda(dados.saidasTarde)}`);
+    linhas.push('');
+    linhas.push('Detalhes Saidas Tarde:');
+
+    if (!dados.detalhesSaidasTarde.length) {
+        linhas.push('- Sem lancamentos');
+    } else {
+        dados.detalhesSaidasTarde.forEach(function (item) {
+            linhas.push(`- ${item.descricao}: ${formatarMoeda(item.valor)}`);
+        });
+    }
+
+    linhas.push('');
     linhas.push(`Total Final: ${formatarMoeda(dados.total)}`);
+    linhas.push('');
     linhas.push(`Saidas (M+T): ${formatarMoeda(dados.saidas)}`);
+    linhas.push('');
     linhas.push(`Diferenca: ${formatarMoeda(dados.diferenca)}`);
+    linhas.push('');
     linhas.push('--------------------------------');
     linhas.push('');
     return linhas.join('\r\n');
@@ -169,18 +209,18 @@ function carregarParcialNoFinal() {
     document.getElementById('final-parcial-datahora').textContent = formatarDataHora(parcial.datahora || '-');
 }
 
-function adicionarSaidaManha(descricao = '', valor = '') {
-    const lista = document.getElementById('saidas-manha-list');
+function adicionarSaida(periodo, descricao = '', valor = '') {
+    const lista = document.getElementById(`saidas-${periodo}-list`);
     const item = document.createElement('div');
     item.className = 'subfield-item';
     const descricaoInput = document.createElement('input');
     descricaoInput.type = 'text';
-    descricaoInput.className = 'saida-manha-descricao';
-    descricaoInput.placeholder = 'Descrição (ex.: gasolina)';
+    descricaoInput.className = 'saida-descricao';
+    descricaoInput.placeholder = 'Descrição';
     descricaoInput.value = descricao;
     const valorInput = document.createElement('input');
     valorInput.type = 'number';
-    valorInput.className = 'saida-manha-valor';
+    valorInput.className = 'saida-valor';
     valorInput.placeholder = 'Valor';
     valorInput.step = '0.01';
     valorInput.value = valor;
@@ -189,24 +229,34 @@ function adicionarSaidaManha(descricao = '', valor = '') {
     removerBotao.className = 'remove-item-button';
     removerBotao.setAttribute('aria-label', 'Remover saída');
     removerBotao.textContent = 'Remover';
-    valorInput.addEventListener('input', atualizarTotalSaidasManha);
+    valorInput.addEventListener('input', function () {
+        atualizarTotalSaidas(periodo);
+    });
     removerBotao.addEventListener('click', function () {
         item.remove();
-        atualizarTotalSaidasManha();
+        atualizarTotalSaidas(periodo);
     });
     item.appendChild(descricaoInput);
     item.appendChild(valorInput);
     item.appendChild(removerBotao);
     lista.appendChild(item);
-    atualizarTotalSaidasManha();
+    atualizarTotalSaidas(periodo);
 }
 
-function obterDetalhesSaidasManha() {
-    const itens = Array.from(document.querySelectorAll('.subfield-item'));
+function adicionarSaidaManha(descricao = '', valor = '') {
+    adicionarSaida('manha', descricao, valor);
+}
+
+function adicionarSaidaTarde(descricao = '', valor = '') {
+    adicionarSaida('tarde', descricao, valor);
+}
+
+function obterDetalhesSaidas(periodo) {
+    const itens = Array.from(document.querySelectorAll(`#saidas-${periodo}-list .subfield-item`));
     return itens
         .map(function (item) {
-            const descricao = item.querySelector('.saida-manha-descricao').value.trim();
-            const valor = paraNumero(item.querySelector('.saida-manha-valor').value);
+            const descricao = item.querySelector('.saida-descricao').value.trim();
+            const valor = paraNumero(item.querySelector('.saida-valor').value);
             return { descricao: descricao || 'Sem descrição', valor };
         })
         .filter(function (item) {
@@ -224,6 +274,7 @@ function preencherCupom(dados) {
     document.getElementById('print-alimentacao').textContent = formatarMoeda(dados.alimentacao);
     document.getElementById('print-pix').textContent = formatarMoeda(dados.pix);
     document.getElementById('print-transferencia').textContent = formatarMoeda(dados.transferencia);
+    document.getElementById('print-sistema').textContent = formatarMoeda(dados.sistema);
     document.getElementById('print-dinheiro-agenda').textContent = formatarMoeda(dados.dinheiroAgenda);
     document.getElementById('print-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('print-total-pix').textContent = formatarMoeda(dados.totalPixTransferencia);
@@ -245,6 +296,21 @@ function preencherCupom(dados) {
         li.textContent = `${item.descricao}: ${formatarMoeda(item.valor)}`;
         lista.appendChild(li);
     });
+
+    const listaTarde = document.getElementById('print-saidas-tarde-list');
+    listaTarde.innerHTML = '';
+    if (!dados.detalhesSaidasTarde.length) {
+        const vazio = document.createElement('li');
+        vazio.textContent = 'Sem lançamentos';
+        listaTarde.appendChild(vazio);
+        return;
+    }
+
+    dados.detalhesSaidasTarde.forEach(function (item) {
+        const li = document.createElement('li');
+        li.textContent = `${item.descricao}: ${formatarMoeda(item.valor)}`;
+        listaTarde.appendChild(li);
+    });
 }
 
 function montarDadosCupom() {
@@ -254,12 +320,13 @@ function montarDadosCupom() {
     const alimentacao = paraNumero(document.getElementById('cartao-alimentacao').value);
     const pix = paraNumero(document.getElementById('pix').value);
     const transferencia = paraNumero(document.getElementById('transferencia').value);
+    const sistema = paraNumero(document.getElementById('sistema').value);
     const dinheiroAgenda = paraNumero(document.getElementById('dinheiro-agenda').value);
     const saidasManha = paraNumero(document.getElementById('saidas-manha').value);
     const saidasTarde = paraNumero(document.getElementById('saidas-tarde').value);
     const totalCartao = debito + credito + alimentacao;
     const totalPixTransferencia = pix + transferencia;
-    const total = totalCartao + totalPixTransferencia + dinheiroAgenda;
+    const total = totalCartao + totalPixTransferencia + sistema + dinheiroAgenda;
     const saidas = saidasManha + saidasTarde;
     const diferenca = total - saidas;
     return {
@@ -272,25 +339,29 @@ function montarDadosCupom() {
         alimentacao,
         pix,
         transferencia,
+        sistema,
         dinheiroAgenda,
         totalCartao,
         totalPixTransferencia,
         saidasManha,
-        detalhesSaidasManha: obterDetalhesSaidasManha(),
+        detalhesSaidasManha: obterDetalhesSaidas('manha'),
         saidasTarde,
+        detalhesSaidasTarde: obterDetalhesSaidas('tarde'),
         total,
         saidas,
         diferenca
     };
 }
 
-function atualizarTotalSaidasManha() {
-    const valores = document.querySelectorAll('.saida-manha-valor');
+function atualizarTotalSaidas(periodo) {
+    const valores = document.querySelectorAll(`#saidas-${periodo}-list .saida-valor`);
     let soma = 0;
     valores.forEach(function (input) {
         soma += paraNumero(input.value);
     });
-    document.getElementById('saidas-manha').value = soma.toFixed(2);
+
+    const campoDestino = periodo === 'manha' ? 'saidas-manha' : 'saidas-tarde';
+    document.getElementById(campoDestino).value = soma.toFixed(2);
 }
 
 function calcularFinal() {
@@ -328,7 +399,9 @@ document.addEventListener('DOMContentLoaded', function () {
         campoDataHora.value = localISO;
     }
     adicionarSaidaManha('Gasolina', '0');
-    atualizarTotalSaidasManha();
+    adicionarSaidaTarde('Passagem', '0');
+    atualizarTotalSaidas('manha');
+    atualizarTotalSaidas('tarde');
     const parcialBruto = localStorage.getItem(CHAVE_PARCIAL);
     if (parcialBruto) {
         const parcial = JSON.parse(parcialBruto);
