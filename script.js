@@ -11,6 +11,23 @@ const URL_API_FECHAMENTOS_FINAIS = `${API_BASE_URL}/api/fechamentos-finais`;
 let operadoresCadastrados = [];
 let historicoParciais = [];
 let historicoFinais = [];
+const LARGURA_CUPOM = 38;
+
+function openTab(tabId, botao) {
+    const abas = document.querySelectorAll('.tab-content');
+    abas.forEach(function (aba) {
+        aba.style.display = aba.id === tabId ? 'block' : 'none';
+    });
+
+    const botoes = document.querySelectorAll('.tab-button');
+    botoes.forEach(function (item) {
+        item.classList.remove('active');
+    });
+
+    if (botao) {
+        botao.classList.add('active');
+    }
+}
 
 function formatarMoeda(valor) {
     return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
@@ -38,6 +55,81 @@ function formatarDataParaFiltro(valor) {
     return `${ano}-${mes}-${dia}`;
 }
 
+async function requisicaoJson(url, options) {
+    const response = await fetch(url, options);
+    let payload = {};
+
+    try {
+        payload = await response.json();
+    } catch (erro) {
+        payload = {};
+    }
+
+    if (!response.ok) {
+        throw new Error(payload.error || `Falha na requisicao (${response.status}).`);
+    }
+
+    return payload;
+}
+
+async function salvarOperadorNoBanco(nome) {
+    await requisicaoJson(URL_API_OPERADORES, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome })
+    });
+}
+
+async function excluirOperadorNoBanco(nome, senha) {
+    await requisicaoJson(`${URL_API_OPERADORES}?nome=${encodeURIComponent(nome)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senha })
+    });
+}
+
+async function carregarOperadoresDoBanco() {
+    const resultado = await requisicaoJson(URL_API_OPERADORES);
+    operadoresCadastrados = Array.isArray(resultado.items)
+        ? resultado.items.map(function (item) { return String(item.nome || '').trim(); }).filter(Boolean)
+        : [];
+}
+
+async function salvarParcialNoBanco(parcial) {
+    try {
+        await requisicaoJson(URL_API_PARCIAIS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(parcial)
+        });
+        return true;
+    } catch (erro) {
+        console.warn('Nao foi possivel salvar fechamento parcial no banco.', erro);
+        return false;
+    }
+}
+
+async function carregarParciaisDoBanco() {
+    const resultado = await requisicaoJson(URL_API_PARCIAIS);
+    const lista = Array.isArray(resultado.items) ? resultado.items : [];
+    const normalizados = lista.map(function (item) {
+        return {
+            id: item.id,
+            operador: String(item.operador || '').trim(),
+            datahora: item.datahora || '',
+            valor: Number(item.valor || 0)
+        };
+    }).filter(function (item) {
+        return item.operador && item.datahora;
+    });
+
+    salvarListaParciais(normalizados);
+
+    if (normalizados.length) {
+        localStorage.setItem(CHAVE_PARCIAL, JSON.stringify(normalizados[0]));
+    }
+}
+
 function baixarArquivo(nomeArquivo, conteudo) {
     const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -50,110 +142,122 @@ function baixarArquivo(nomeArquivo, conteudo) {
     URL.revokeObjectURL(url);
 }
 
+function limitarLinhaCupom(texto) {
+    return String(texto || '').slice(0, LARGURA_CUPOM);
+}
+
+function linhaDetalheCupom(prefixo, descricao, valor) {
+    const valorTexto = formatarMoeda(valor);
+    const sufixo = ` ${valorTexto}`;
+    const maxDescricao = Math.max(0, LARGURA_CUPOM - prefixo.length - sufixo.length);
+    const descricaoCurta = String(descricao || 'Sem lancamento').slice(0, maxDescricao);
+    return `${prefixo}${descricaoCurta}${sufixo}`;
+}
+
+function linhaCampoCupom(rotulo, valor) {
+    const textoRotulo = `${String(rotulo || '').trim()}:`;
+    const textoValor = String(valor || '-').trim();
+    const larguraPontos = Math.max(1, LARGURA_CUPOM - textoRotulo.length - textoValor.length - 2);
+    return `${textoRotulo} ${'.'.repeat(larguraPontos)} ${textoValor}`;
+}
+
 function gerarConteudoParcialTexto(parcial) {
+    const data = formatarDataHora(parcial.datahora);
+    const caixa = parcial.operador || '-';
+    const valor = formatarMoeda(parcial.valor);
+    const separador = '-'.repeat(LARGURA_CUPOM);
+
     const linhas = [
+        'SOLAR SUPERMERCADO',
         'FECHAMENTO PARCIAL',
+        separador,
+        `DT: ${data}`,
+        `CX: ${caixa}`,
         '',
-        '--------------------------------',
-        '',
-        `Data/Hora: ${formatarDataHora(parcial.datahora)}`,
-        '',
-        `Caixa Parcial: ${parcial.operador || '-'}`,
-        '',
-        `Valor Parcial: ${formatarMoeda(parcial.valor)}`,
-        '',
-        '--------------------------------',
+        `VAL: ${valor}`,
+        separador,
         '',
         ''
     ];
-    return linhas.join('\r\n');
+    return linhas.map(limitarLinhaCupom).join('\r\n');
 }
 
 function gerarConteudoFinalTexto(dados) {
+    const separador = '-'.repeat(LARGURA_CUPOM);
     const linhas = [
+        'SOLAR SUPERMERCADO',
         'FECHAMENTO FINAL',
+        separador,
+        linhaCampoCupom('Data/Hora Parcial', formatarDataHora(dados.parcialDataHora)),
+        linhaCampoCupom('Caixa Parcial', dados.parcialOperador || '-'),
+        linhaCampoCupom('Valor Parcial', formatarMoeda(dados.parcialValor)),
         '',
-        '--------------------------------',
-        '',
-        `Data/Hora Parcial: ${formatarDataHora(dados.parcialDataHora)}`,
-        '',
-        `Caixa Parcial: ${dados.parcialOperador || '-'}`,
-        '',
-        `Valor Parcial: ${formatarMoeda(dados.parcialValor)}`,
-        '',
-        '--------------------------------',
-        '',
-        `Operador Final: ${dados.finalOperador || '-'}`,
-        '',
-        `Cartao Debito: ${formatarMoeda(dados.debito)}`,
-        '',
-        `Cartao Credito: ${formatarMoeda(dados.credito)}`,
-        ''
+        linhaCampoCupom('Operador Final', dados.finalOperador || '-'),
+        linhaCampoCupom('Cartão Débito', formatarMoeda(dados.debito)),
+        linhaCampoCupom('Cartão Crédito', formatarMoeda(dados.credito)),
     ];
 
     if (dados.caixaCompartilhado) {
         linhas.push(`Caixa Compartilhado: iniciou com ${dados.parcialOperador || '-'} (${formatarMoeda(dados.parcialValor)}) e terminou com ${dados.finalOperador || '-'}`);
-        linhas.push('');
     }
 
     if (dados.alimentacao > 0) {
-        linhas.push(`Cartao Alimentacao: ${formatarMoeda(dados.alimentacao)}`);
-        linhas.push('');
+        linhas.push(linhaCampoCupom('Cartão Alimentação', formatarMoeda(dados.alimentacao)));
     }
 
-    linhas.push(`PIX: ${formatarMoeda(dados.pix)}`);
-    linhas.push('');
+    linhas.push(linhaCampoCupom('PIX', formatarMoeda(dados.pix)));
 
     if (dados.transferencia > 0) {
-        linhas.push(`Transferencia: ${formatarMoeda(dados.transferencia)}`);
-        linhas.push('');
+        linhas.push(linhaCampoCupom('Transferência', formatarMoeda(dados.transferencia)));
     }
 
-    linhas.push(`Sistema: ${formatarMoeda(dados.sistema)}`);
-    linhas.push('');
-    linhas.push(`Dinheiro Agenda: ${formatarMoeda(dados.dinheiroAgenda)}`);
-    linhas.push('');
-    linhas.push(`Total Dinheiro (Sistema + Agenda): ${formatarMoeda(dados.totalDinheiro)}`);
-    linhas.push('');
-    linhas.push(`Total Cartao: ${formatarMoeda(dados.totalCartao)}`);
-    linhas.push('');
-    linhas.push(`Total PIX/Transf: ${formatarMoeda(dados.totalPixTransferencia)}`);
-    linhas.push('');
-    linhas.push(`Saidas Manha Total: ${formatarMoeda(dados.saidasManha)}`);
-    linhas.push('');
-    linhas.push('Detalhes Saidas Manha:');
+    linhas.push(
+        linhaCampoCupom('Sistema', formatarMoeda(dados.sistema)),
+        linhaCampoCupom('Dinheiro Agenda', formatarMoeda(dados.dinheiroAgenda)),
+        linhaCampoCupom('Total Dinheiro', formatarMoeda(dados.totalDinheiro)),
+        linhaCampoCupom('Total Cartão', formatarMoeda(dados.totalCartao)),
+        linhaCampoCupom('Total PIX/Transf', formatarMoeda(dados.totalPixTransferencia)),
+        '',
+        linhaCampoCupom('Saídas Manhã Total', formatarMoeda(dados.saidasManha)),
+        'Detalhes Saídas Manhã:',
+    );
 
     if (!dados.detalhesSaidasManha.length) {
-        linhas.push('- Sem lancamentos');
+        linhas.push('- Sem lançamentos');
     } else {
         dados.detalhesSaidasManha.forEach(function (item) {
-            linhas.push(`- ${item.descricao}: ${formatarMoeda(item.valor)}`);
+            linhas.push(linhaDetalheCupom('- ', item.descricao, item.valor));
         });
     }
 
-    linhas.push('');
-    linhas.push(`Saidas Tarde Total: ${formatarMoeda(dados.saidasTarde)}`);
-    linhas.push('');
-    linhas.push('Detalhes Saidas Tarde:');
+    linhas.push(
+        '',
+        linhaCampoCupom('Saídas Tarde Total', formatarMoeda(dados.saidasTarde)),
+        'Detalhes Saídas Tarde:',
+        '',
+    );
 
     if (!dados.detalhesSaidasTarde.length) {
-        linhas.push('- Sem lancamentos');
+        linhas.push('- Sem lançamentos');
     } else {
         dados.detalhesSaidasTarde.forEach(function (item) {
-            linhas.push(`- ${item.descricao}: ${formatarMoeda(item.valor)}`);
+            linhas.push(linhaDetalheCupom('- ', item.descricao, item.valor));
         });
     }
 
-    linhas.push('');
-    linhas.push(`Total Final (sem parcial): ${formatarMoeda(dados.total)}`);
-    linhas.push('');
-    linhas.push(`Saidas (M+T): ${formatarMoeda(dados.saidas)}`);
-    linhas.push('');
-    linhas.push('Diferenca:');
-    linhas.push('');
-    linhas.push('--------------------------------');
-    linhas.push('');
-    return linhas.join('\r\n');
+    linhas.push(
+        '',
+        separador,
+        'TOTAL FINAL (SEM PARCIAL):',
+        `${formatarMoeda(dados.total)}`,
+        linhaCampoCupom('Saídas (M+T)', formatarMoeda(dados.saidas)),
+        'Diferença:',
+        separador,
+        '',
+        ''
+    );
+
+    return linhas.map(limitarLinhaCupom).join('\r\n');
 }
 
 function gerarCupomElginArquivo(conteudo) {
@@ -184,89 +288,8 @@ async function imprimirOuGerarFallback(conteudo, tipoCupom) {
         alert(`Impressão ${tipoCupom} enviada com sucesso para a Elgin i9.`);
     } catch (erro) {
         console.error('Erro na impressão via serviço local:', erro);
+        alert(`Nao foi possivel imprimir ${tipoCupom} automaticamente. Um arquivo cupom-elgin.txt sera baixado para impressao manual.\n\nDetalhes: ${erro.message}`);
         gerarCupomElginArquivo(conteudo);
-        alert('O serviço local de impressão não está rodando ou falhou. O arquivo cupom-elgin.txt foi gerado para impressão via BAT.');
-    }
-}
-
-function openTab(tabName, clickedButton) {
-    const tabs = document.querySelectorAll('.tab-content');
-
-    tabs.forEach(tab => tab.style.display = 'none');
-    const buttons = document.querySelectorAll('.tab-button');
-    buttons.forEach(button => button.classList.remove('active'));
-    document.getElementById(tabName).style.display = 'block';
-    if (clickedButton) clickedButton.classList.add('active');
-    if (tabName === 'final') carregarParcialNoFinal();
-}
-
-async function requisicaoJson(url, options = {}) {
-    const response = await fetch(url, {
-        headers: {
-            'Content-Type': 'application/json',
-            ...(options.headers || {})
-        },
-        ...options
-    });
-
-    if (!response.ok) {
-        throw new Error(`Falha na API (${response.status})`);
-    }
-
-    return response.json();
-}
-
-async function carregarParciaisDoBanco() {
-    try {
-        const resultado = await requisicaoJson(URL_API_PARCIAIS);
-        const lista = Array.isArray(resultado.items) ? resultado.items : [];
-        salvarListaParciais(lista);
-        if (lista.length) {
-            localStorage.setItem(CHAVE_PARCIAL, JSON.stringify(lista[0]));
-        }
-        return true;
-    } catch (erro) {
-        console.warn('Nao foi possivel carregar parciais do banco.', erro);
-        return false;
-    }
-}
-
-async function carregarOperadoresDoBanco() {
-    try {
-        const resultado = await requisicaoJson(URL_API_OPERADORES);
-        operadoresCadastrados = Array.isArray(resultado.items)
-            ? resultado.items.map(function (item) { return String(item.nome || '').trim(); }).filter(Boolean)
-            : [];
-    } catch (erro) {
-        console.warn('Nao foi possivel carregar operadores do banco.', erro);
-        operadoresCadastrados = [];
-    }
-}
-
-async function salvarOperadorNoBanco(nome) {
-    await requisicaoJson(URL_API_OPERADORES, {
-        method: 'POST',
-        body: JSON.stringify({ nome })
-    });
-}
-
-async function excluirOperadorNoBanco(nome, senha) {
-    await requisicaoJson(`${URL_API_OPERADORES}?nome=${encodeURIComponent(nome)}`, {
-        method: 'DELETE',
-        body: JSON.stringify({ senha })
-    });
-}
-
-async function salvarParcialNoBanco(parcial) {
-    try {
-        await requisicaoJson(URL_API_PARCIAIS, {
-            method: 'POST',
-            body: JSON.stringify(parcial)
-        });
-        return true;
-    } catch (erro) {
-        console.warn('Nao foi possivel salvar parcial no banco.', erro);
-        return false;
     }
 }
 

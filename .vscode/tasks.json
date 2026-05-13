@@ -156,6 +156,16 @@
 			"type": "shell",
 			"command": "cd \"c:\\Users\\USER\\Documents\\app fechamento\"; git add -A; git commit -m \"feat: implementar exclusao de operadores com validacao de senha solar013\"; git push",
 			"group": "build"
+		},
+		{
+			"label": "Rodar serviço de impressão local",
+			"type": "shell",
+			"command": "c:/Users/USER/Documents/app fechamento/.venv/Scripts/python.exe",
+			"args": [
+				"impressora_service.py"
+			],
+			"isBackground": true,
+			"group": "build"
 		}
 	]
 }
