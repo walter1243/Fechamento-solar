@@ -65,9 +65,9 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      const id = String(req.query?.id || req.url.split('/').pop() || '').trim();
-      if (!id) {
-        sendJson(res, 400, { error: 'id e obrigatorio para deletar.' });
+      const id = String(req.query?.id || '').trim();
+      if (!id || isNaN(id)) {
+        sendJson(res, 400, { error: 'id numerico e obrigatorio para deletar.' });
         return;
       }
 
@@ -75,7 +75,10 @@ module.exports = async function handler(req, res) {
       const senha = String(body.senha || '').trim();
       const deletePassword = process.env.DELETE_PASSWORD || 'solar013';
       
+      console.log(`DELETE attempt: id=${id}, senha=${senha}, expected=${deletePassword}`);
+      
       if (senha !== deletePassword) {
+        console.log(`Senha incorreta: recebida '${senha}' esperada '${deletePassword}'`);
         sendJson(res, 401, { error: 'Senha incorreta para deletar fechamento parcial.' });
         return;
       }

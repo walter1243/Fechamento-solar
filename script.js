@@ -409,7 +409,7 @@ async function deletarHistoricoParcial(indice) {
     if (senha === null || senha === '') return;
     
     try {
-        await requisicaoJson(`${URL_API_PARCIAIS}/${item.id}`, {
+        await requisicaoJson(`${URL_API_PARCIAIS}?id=${item.id}`, {
             method: 'DELETE',
             body: JSON.stringify({ senha })
         });
@@ -432,7 +432,7 @@ async function deletarHistoricoFinal(indice) {
     if (senha === null || senha === '') return;
     
     try {
-        await requisicaoJson(`${URL_API_FECHAMENTOS_FINAIS}/${item.id}`, {
+        await requisicaoJson(`${URL_API_FECHAMENTOS_FINAIS}?id=${item.id}`, {
             method: 'DELETE',
             body: JSON.stringify({ senha })
         });

@@ -56,7 +56,10 @@ module.exports = async function handler(req, res) {
       const senha = String(body.senha || '').trim();
       const deletePassword = process.env.DELETE_PASSWORD || 'solar013';
       
+      console.log(`DELETE operador: nome=${nome}, senha=${senha}, expected=${deletePassword}`);
+      
       if (senha !== deletePassword) {
+        console.log(`Senha incorreta: recebida '${senha}' esperada '${deletePassword}'`);
         sendJson(res, 401, { error: 'Senha incorreta para excluir operador.' });
         return;
       }
