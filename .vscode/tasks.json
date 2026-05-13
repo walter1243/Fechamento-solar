@@ -78,6 +78,84 @@
 			"type": "shell",
 			"command": "git add index.html script.js styles.css impressora_service.py .vscode/tasks.json; git commit -m 'feat: ajustes finais formulário, cálculo e impressão'; git push -u origin HEAD:main",
 			"isBackground": false
+		},
+		{
+			"label": "Commit e push ajustes diferenca e impressao",
+			"type": "shell",
+			"command": "git add script.js index.html impressora_service.py; git commit -m 'fix: diferenca em branco e campos condicionais no cupom'; git push -u origin HEAD:main",
+			"isBackground": false
+		},
+		{
+			"label": "Commit e push caixa compartilhado",
+			"type": "shell",
+			"command": "git add index.html script.js styles.css; git commit -m 'feat: funcao caixa compartilhado com confirmacao e relatorio'; git push -u origin HEAD:main",
+			"isBackground": false
+		},
+		{
+			"label": "Commit e push toggle caixa compartilhado",
+			"type": "shell",
+			"command": "git add index.html script.js; git commit -m 'fix: exibe operador final apenas no caixa compartilhado'; git push -u origin HEAD:main",
+			"isBackground": false
+		},
+		{
+			"label": "Inicializar tabelas PostgreSQL",
+			"type": "shell",
+			"command": "C:/Users/USER/AppData/Local/Programs/Python/Python313/python.exe -m pip install -r requirements.txt; C:/Users/USER/AppData/Local/Programs/Python/Python313/python.exe scripts/init_db.py",
+			"isBackground": false
+		},
+		{
+			"label": "Commit e push integracao banco Vercel",
+			"type": "shell",
+			"command": "git add api package.json script.js .gitignore README.md requirements.txt .env.example scripts/init_db.py scripts/schema.sql; git commit -m 'feat: integra persistencia remota com Neon e API Vercel'; git push -u origin HEAD:main",
+			"isBackground": false
+		},
+		{
+			"label": "Commit e push fix frontend API banco",
+			"type": "shell",
+			"command": "git add script.js; git commit -m 'fix: corrige escopo das funcoes de API no frontend'; git push -u origin HEAD:main",
+			"isBackground": false
+		},
+		{
+			"label": "Verificar status Git completo",
+			"type": "shell",
+			"command": "git status --short",
+			"isBackground": false
+		},
+		{
+			"label": "Verificar status antes do push historico",
+			"type": "shell",
+			"command": "git status --short",
+			"isBackground": false
+		},
+		{
+			"label": "Commit e push historico desktop",
+			"type": "shell",
+			"command": "git add index.html styles.css script.js api/parciais.js api/fechamentos-finais.js; git commit -m 'feat: adiciona historico desktop por dia com visualizacao e impressao'; git push -u origin HEAD:main",
+			"isBackground": false
+		},
+		{
+			"label": "Commit e push popup + cadastro caixas",
+			"type": "shell",
+			"command": "git add index.html styles.css script.js api/operadores.js api/parciais.js api/fechamentos-finais.js; git commit -m 'feat: popup de visualizacao e cadastro de caixas com selecao no parcial'; git push -u origin HEAD:main",
+			"isBackground": false
+		},
+		{
+			"label": "Commit e push selecao e exclusao caixas",
+			"type": "shell",
+			"command": "git add index.html styles.css script.js api/operadores.js; git commit -m 'feat: selecao de caixa no fechamento final e exclusao de caixas'; git push -u origin HEAD:main",
+			"isBackground": false
+		},
+		{
+			"label": "Commit e push - Exclusão de operadores com senha",
+			"type": "shell",
+			"command": "cd \"c:\\Users\\USER\\Documents\\app fechamento\" && git add -A && git commit -m \"feat: implementar exclusao de operadores com validacao de senha solar013\" && git push",
+			"group": "build"
+		},
+		{
+			"label": "Commit e push - Exclusão de operadores com senha",
+			"type": "shell",
+			"command": "cd \"c:\\Users\\USER\\Documents\\app fechamento\"; git add -A; git commit -m \"feat: implementar exclusao de operadores com validacao de senha solar013\"; git push",
+			"group": "build"
 		}
 	]
 }

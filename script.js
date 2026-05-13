@@ -250,9 +250,10 @@ async function salvarOperadorNoBanco(nome) {
     });
 }
 
-async function excluirOperadorNoBanco(nome) {
+async function excluirOperadorNoBanco(nome, senha) {
     await requisicaoJson(`${URL_API_OPERADORES}?nome=${encodeURIComponent(nome)}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        body: JSON.stringify({ senha })
     });
 }
 
@@ -518,15 +519,19 @@ async function excluirCaixa(nome) {
     const confirmar = window.confirm(`Excluir o caixa ${nome}?`);
     if (!confirmar) return;
 
+    const senha = window.prompt('Digite a senha para confirmar a exclusão:');
+    if (senha === null || senha === '') return;
+
     try {
-        await excluirOperadorNoBanco(nome);
+        await excluirOperadorNoBanco(nome, senha);
         await carregarOperadoresDoBanco();
         renderizarOperadoresCadastrados();
         popularOperadoresParcial();
         popularOperadoresFechamentoFinal();
+        alert('Caixa excluído com sucesso.');
     } catch (erro) {
         console.error('Erro ao excluir caixa:', erro);
-        alert('Nao foi possivel excluir o caixa agora.');
+        alert('Nao foi possivel excluir o caixa agora. Verifique a senha.');
     }
 }
 

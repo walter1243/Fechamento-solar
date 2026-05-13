@@ -52,6 +52,15 @@ module.exports = async function handler(req, res) {
         return;
       }
 
+      const body = await readJsonBody(req);
+      const senha = String(body.senha || '').trim();
+      const deletePassword = process.env.DELETE_PASSWORD || 'solar013';
+      
+      if (senha !== deletePassword) {
+        sendJson(res, 401, { error: 'Senha incorreta para excluir operador.' });
+        return;
+      }
+
       await sql`
         DELETE FROM operadores
         WHERE nome = ${nome}
