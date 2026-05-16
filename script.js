@@ -191,9 +191,15 @@ function normalizarDadosCupom(dados) {
     const dinheiroAgenda = Number(dados.dinheiroAgenda || 0);
     const saidasManha = Number(dados.saidasManha || 0);
     const saidasTarde = Number(dados.saidasTarde || 0);
+    const debito = Number(dados.debito || 0);
+    const credito = Number(dados.credito || 0);
+    const alimentacao = Number(dados.alimentacao || 0);
+    const pix = Number(dados.pix || 0);
+    const transferencia = Number(dados.transferencia || 0);
     const saidas = saidasManha + saidasTarde;
-    // Sempre recalcula a partir dos valores de entrada para garantir consistencia,
-    // mesmo em registros antigos do banco que tinham diferenca/apurado salvos com valores diferentes.
+    const totalCartao = debito + credito + alimentacao;
+    const totalPixTransferencia = pix + transferencia;
+    const totalBancario = totalCartao + totalPixTransferencia;
     dados.parcialValor = parcialValor;
     dados.envelopeNoite = envelopeNoite;
     dados.sistema = sistema;
@@ -201,8 +207,13 @@ function normalizarDadosCupom(dados) {
     dados.saidasManha = saidasManha;
     dados.saidasTarde = saidasTarde;
     dados.saidas = saidas;
-    dados.apurado = parcialValor + envelopeNoite + saidas;
-    dados.esperado = sistema + dinheiroAgenda;
+    dados.totalCartao = totalCartao;
+    dados.totalPixTransferencia = totalPixTransferencia;
+    dados.totalBancario = totalBancario;
+    // Apurado = todo dinheiro fisico que passou pelo caixa
+    dados.apurado = parcialValor + envelopeNoite + dinheiroAgenda + saidas;
+    // Esperado = parcela em dinheiro do sistema (sistema total menos pagamentos bancarios)
+    dados.esperado = sistema - totalBancario;
     dados.diferenca = dados.apurado - dados.esperado;
     dados.totalDinheiro = dados.apurado;
     return dados;
@@ -243,15 +254,16 @@ function gerarConteudoFinalTexto(dados) {
         linhaCampoCupom('Dinheiro Agenda', formatarMoeda(dados.dinheiroAgenda)),
         linhaCampoCupom('Envelope Noite', formatarMoeda(dados.envelopeNoite)),
         '',
-        linhaCampoCupom('Apurado', formatarMoeda(dados.apurado)),
-        '  (Parcial + Envelope + Saidas)',
-        linhaCampoCupom('Esperado', formatarMoeda(dados.esperado)),
-        '  (Sistema + Dinheiro Agenda)',
-        linhaCampoCupom('Diferença', formatarMoeda(dados.diferenca)),
-        '  (Apurado - Esperado)',
-        '',
         linhaCampoCupom('Total Cartão', formatarMoeda(dados.totalCartao)),
         linhaCampoCupom('Total PIX/Transf', formatarMoeda(dados.totalPixTransferencia)),
+        linhaCampoCupom('Total Bancário', formatarMoeda(dados.totalBancario)),
+        '',
+        linhaCampoCupom('Apurado', formatarMoeda(dados.apurado)),
+        '  (Parcial+Envelope+Agenda+Saidas)',
+        linhaCampoCupom('Esperado', formatarMoeda(dados.esperado)),
+        '  (Sistema - Total Bancario)',
+        linhaCampoCupom('Diferença', formatarMoeda(dados.diferenca)),
+        '  (Apurado - Esperado)',
     );
 
     const detalhesManhaValidos = (dados.detalhesSaidasManha || []).filter(function (i) { return Number(i.valor || 0) > 0; });
@@ -934,6 +946,8 @@ function preencherCupom(dados) {
     if (elDiferenca) elDiferenca.textContent = formatarMoeda(dados.diferenca);
     document.getElementById('print-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('print-total-pix').textContent = formatarMoeda(dados.totalPixTransferencia);
+    const elPrintBancario = document.getElementById('print-total-bancario');
+    if (elPrintBancario) elPrintBancario.textContent = formatarMoeda(dados.totalBancario);
 
     const detalhesManhaValidos = (dados.detalhesSaidasManha || []).filter(function (i) { return Number(i.valor || 0) > 0; });
     const detalhesTardeValidos = (dados.detalhesSaidasTarde || []).filter(function (i) { return Number(i.valor || 0) > 0; });
@@ -987,17 +1001,14 @@ function montarDadosCupom() {
     const saidasManha = paraNumero(document.getElementById('saidas-manha').value);
     const saidasTarde = paraNumero(document.getElementById('saidas-tarde').value);
     const parcialValor = paraNumero(parcialSelecionado.valor);
-    // Apurado = dinheiro fisico que circulou no caixa
-    //   = Parcial (contado fim turno manha) + Envelope Noite + Saidas em dinheiro (sangrias).
-    // Esperado = Sistema + Dinheiro da Agenda.
-    // Diferenca = Apurado - Esperado (positivo = sobra; negativo = falta).
-    const saidas = saidasManha + saidasTarde;
-    const apurado = parcialValor + envelopeNoite + saidas;
-    const esperado = sistema + dinheiroAgenda;
-    const diferenca = apurado - esperado;
-    const totalDinheiro = apurado; // mantido por compatibilidade
     const totalCartao = debito + credito + alimentacao;
     const totalPixTransferencia = pix + transferencia;
+    const totalBancario = totalCartao + totalPixTransferencia;
+    const saidas = saidasManha + saidasTarde;
+    const apurado = parcialValor + envelopeNoite + dinheiroAgenda + saidas;
+    const esperado = sistema - totalBancario;
+    const diferenca = apurado - esperado;
+    const totalDinheiro = apurado;
     return {
         parcialDataHora: parcialSelecionado.datahora || document.getElementById('parcial-datahora').value,
         parcialOperador: parcialSelecionado.operador || document.getElementById('parcial-operador').value || '-',
@@ -1018,6 +1029,7 @@ function montarDadosCupom() {
         totalDinheiro,
         totalCartao,
         totalPixTransferencia,
+        totalBancario,
         saidasManha,
         detalhesSaidasManha: obterDetalhesSaidas('manha'),
         saidasTarde,
@@ -1066,6 +1078,8 @@ function calcularFinal() {
     const dados = montarDadosCupom();
     document.getElementById('final-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('final-total-pix-transferencia').textContent = formatarMoeda(dados.totalPixTransferencia);
+    const elBancario = document.getElementById('final-total-bancario');
+    if (elBancario) elBancario.textContent = formatarMoeda(dados.totalBancario);
     const elApurado = document.getElementById('final-apurado');
     if (elApurado) elApurado.textContent = formatarMoeda(dados.apurado);
     const elEsperado = document.getElementById('final-esperado');
