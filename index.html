@@ -158,12 +158,12 @@
                 <button type="button" class="action-button secondary" onclick="imprimirFechamentoFinal()">Gerar Cupom Elgin (c/ corte)</button>
                 <button type="button" id="btn-reimprimir" class="action-button warning" onclick="reimprimirUltimoCupom()">Regerar Último Cupom</button>
                 <div class="result-panel">
-                    <p class="result-line">Total Cartão: <span id="final-total-cartao">R$ 0,00</span></p>
-                    <p class="result-line">Total PIX/Transferência: <span id="final-total-pix-transferencia">R$ 0,00</span></p>
-                    <p class="result-line">Total Bancário (Cartão + PIX/Transf): <span id="final-total-bancario">R$ 0,00</span></p>
-                    <p class="result-line">Apurado (Parcial + Envelope + Saídas): <span id="final-apurado">R$ 0,00</span></p>
-                    <p class="result-line">Esperado (Sistema + Agenda): <span id="final-esperado">R$ 0,00</span></p>
-                    <p class="result-line"><strong>Diferença (Apurado − Esperado): <span id="final-diferenca">R$ 0,00</span></strong></p>
+                    <p class="result-line">Cartões: <span id="final-total-cartao">R$ 0,00</span></p>
+                    <p class="result-line">PIX / Transferência: <span id="final-total-pix-transferencia">R$ 0,00</span></p>
+                    <p class="result-line">Total Bancário: <span id="final-total-bancario">R$ 0,00</span></p>
+                    <p class="result-line">Dinheiro no Caixa: <span id="final-apurado">R$ 0,00</span></p>
+                    <p class="result-line">Dinheiro Esperado: <span id="final-esperado">R$ 0,00</span></p>
+                    <p class="result-line"><strong>Sobra / Falta: <span id="final-diferenca">R$ 0,00</span></strong></p>
                 </div>
             </form>
             <p class="helper-line">A impressão usa o serviço local Python em 127.0.0.1:8000 para enviar direto à Elgin i9 com corte. Se ele não estiver rodando, o sistema gera cupom-elgin.txt para uso no BAT.</p>
