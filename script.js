@@ -219,9 +219,10 @@ function normalizarDadosCupom(dados) {
     dados.diferenca = dados.apurado - dados.esperado;
     dados.totalDinheiro = dados.apurado;
     // Campos extras usados apenas no comprovante:
-    //   Total Dinheiro do cupom = Parcial + Envelope Noite + Dinheiro Agenda
+    //   Total Dinheiro do cupom = Parcial + Envelope Noite + Saidas (M+T)
+    //     (formula do papel: tudo que saiu do caixa em dinheiro fisico)
     //   Total Geral = Cartoes + PIX/Transf + Total Dinheiro
-    dados.totalDinheiroCupom = parcialValor + envelopeNoite + dinheiroAgenda;
+    dados.totalDinheiroCupom = parcialValor + envelopeNoite + saidas;
     dados.totalGeral = totalCartao + totalPixTransferencia + dados.totalDinheiroCupom;
     return dados;
 }
@@ -267,7 +268,7 @@ function gerarConteudoFinalTexto(dados) {
         '',
         separador,
         linhaCampoCupom('** TOTAL DINHEIRO **', formatarMoeda(dados.totalDinheiroCupom)),
-        '  (Parcial+Envelope+Agenda)',
+        '  (Parcial+Envelope+Saidas)',
         separador,
         linhaCampoCupom('Esperado', formatarMoeda(dados.esperado)),
         '  (Sistema + Agenda)',
