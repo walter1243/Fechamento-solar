@@ -1103,7 +1103,7 @@ function calcularFinal() {
     const elEsperado = document.getElementById('final-esperado');
     if (elEsperado) elEsperado.textContent = formatarMoeda(dados.esperado);
     const elDif = document.getElementById('final-diferenca');
-    if (elDif) elDif.textContent = formatarMoeda(dados.diferenca);
+    if (elDif) elDif.textContent = formatarMoedaComSinal(dados.diferenca);
     preencherCupom(dados);
     return dados;
 }
