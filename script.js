@@ -274,9 +274,8 @@ function gerarConteudoFinalTexto(dados) {
         linhaCampoCupom('** TOTAL DINHEIRO **', formatarMoeda(dados.totalDinheiroCupom)),
         '  (Parcial+Envelope+Saidas+Agenda)',
         separador,
-        linhaCampoCupom('Diferenca', formatarMoedaComSinal(dados.diferenca)),
-        '  (Total Dinheiro+Agenda - Sistema+Agenda)',
-        '  (+ sobra / - falta)',
+        linhaCampoCupom('Diferenca', ''),
+        '  (preencher manualmente)',
         '',
         separador,
         linhaCampoCupom('** TOTAL GERAL **', formatarMoeda(dados.totalGeral)),
@@ -1103,7 +1102,7 @@ function calcularFinal() {
     const elEsperado = document.getElementById('final-esperado');
     if (elEsperado) elEsperado.textContent = formatarMoeda(dados.esperado);
     const elDif = document.getElementById('final-diferenca');
-    if (elDif) elDif.textContent = Number(dados.diferenca || 0) === 0 ? '' : formatarMoedaComSinal(dados.diferenca);
+    if (elDif) elDif.textContent = '';
     preencherCupom(dados);
     return dados;
 }
