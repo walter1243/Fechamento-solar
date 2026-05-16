@@ -161,9 +161,10 @@
                     <p class="result-line">Total Cartão: <span id="final-total-cartao">R$ 0,00</span></p>
                     <p class="result-line">Total PIX/Transferência: <span id="final-total-pix-transferencia">R$ 0,00</span></p>
                     <p class="result-line">Total Bancário (Cartão + PIX/Transf): <span id="final-total-bancario">R$ 0,00</span></p>
-                    <p class="result-line">Apurado (Parcial + Envelope + Agenda + Saídas): <span id="final-apurado">R$ 0,00</span></p>
-                    <p class="result-line">Esperado (Sistema − Total Bancário): <span id="final-esperado">R$ 0,00</span></p>
+                    <p class="result-line">Apurado (Parcial + Envelope + Saídas): <span id="final-apurado">R$ 0,00</span></p>
+                    <p class="result-line">Esperado (Dinheiro Agenda): <span id="final-esperado">R$ 0,00</span></p>
                     <p class="result-line"><strong>Diferença (Apurado − Esperado): <span id="final-diferenca">R$ 0,00</span></strong></p>
+                    <p class="result-line helper-line">Sistema é tira-teima do Envelope (não entra nas contas) — diferença Sistema − Envelope: <span id="final-sistema-tira-teima">R$ 0,00</span></p>
                 </div>
             </form>
             <p class="helper-line">A impressão usa o serviço local Python em 127.0.0.1:8000 para enviar direto à Elgin i9 com corte. Se ele não estiver rodando, o sistema gera cupom-elgin.txt para uso no BAT.</p>
@@ -182,12 +183,13 @@
             <p id="print-alimentacao-row">Cartão Alimentação: <span id="print-alimentacao">R$ 0,00</span></p>
             <p>PIX: <span id="print-pix">R$ 0,00</span></p>
             <p id="print-transferencia-row">Transferência Bancária: <span id="print-transferencia">R$ 0,00</span></p>
-            <p>Sistema: <span id="print-sistema">R$ 0,00</span></p>
             <p>Dinheiro Agenda: <span id="print-dinheiro-agenda">R$ 0,00</span></p>
             <p>Envelope Noite: <span id="print-envelope-noite">R$ 0,00</span></p>
+            <p>Sistema (tira-teima Envelope): <span id="print-sistema">R$ 0,00</span></p>
+            <p>Sistema − Envelope: <span id="print-sistema-tira-teima">R$ 0,00</span></p>
             <p>Total Bancário (Cartão + PIX/Transf): <span id="print-total-bancario">R$ 0,00</span></p>
-            <p>Apurado (Parcial + Envelope + Agenda + Saídas): <span id="print-apurado">R$ 0,00</span></p>
-            <p>Esperado (Sistema − Total Bancário): <span id="print-esperado">R$ 0,00</span></p>
+            <p>Apurado (Parcial + Envelope + Saídas): <span id="print-apurado">R$ 0,00</span></p>
+            <p>Esperado (Dinheiro Agenda): <span id="print-esperado">R$ 0,00</span></p>
             <p><strong>Diferença (Apurado − Esperado): <span id="print-diferenca">R$ 0,00</span></strong></p>
             <p>Total Cartão: <span id="print-total-cartao">R$ 0,00</span></p>
             <p>Total PIX/Transferência: <span id="print-total-pix">R$ 0,00</span></p>

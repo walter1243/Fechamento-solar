@@ -210,11 +210,14 @@ function normalizarDadosCupom(dados) {
     dados.totalCartao = totalCartao;
     dados.totalPixTransferencia = totalPixTransferencia;
     dados.totalBancario = totalBancario;
-    // Apurado = todo dinheiro fisico que passou pelo caixa
-    dados.apurado = parcialValor + envelopeNoite + dinheiroAgenda + saidas;
-    // Esperado = parcela em dinheiro do sistema (sistema total menos pagamentos bancarios)
-    dados.esperado = sistema - totalBancario;
+    // Apurado = dinheiro fisico que passou pelo caixa (Parcial + Envelope + Saidas)
+    // OBS: Sistema NAO entra na conta; ele e apenas tira-teima do Envelope.
+    dados.apurado = parcialValor + envelopeNoite + saidas;
+    // Esperado = dinheiro que deveria estar no envelope segundo a agenda
+    dados.esperado = dinheiroAgenda;
     dados.diferenca = dados.apurado - dados.esperado;
+    // Tira-teima do Sistema vs Envelope (informativo, nao entra em nenhuma soma)
+    dados.sistemaTiraTeima = sistema - envelopeNoite;
     dados.totalDinheiro = dados.apurado;
     return dados;
 }
@@ -250,18 +253,19 @@ function gerarConteudoFinalTexto(dados) {
     }
 
     linhas.push(
-        linhaCampoCupom('Sistema', formatarMoeda(dados.sistema)),
         linhaCampoCupom('Dinheiro Agenda', formatarMoeda(dados.dinheiroAgenda)),
         linhaCampoCupom('Envelope Noite', formatarMoeda(dados.envelopeNoite)),
+        linhaCampoCupom('Sistema (tira-teima)', formatarMoeda(dados.sistema)),
+        linhaCampoCupom('  Sistema - Envelope', formatarMoeda(dados.sistemaTiraTeima)),
         '',
         linhaCampoCupom('Total Cartão', formatarMoeda(dados.totalCartao)),
         linhaCampoCupom('Total PIX/Transf', formatarMoeda(dados.totalPixTransferencia)),
         linhaCampoCupom('Total Bancário', formatarMoeda(dados.totalBancario)),
         '',
         linhaCampoCupom('Apurado', formatarMoeda(dados.apurado)),
-        '  (Parcial+Envelope+Agenda+Saidas)',
+        '  (Parcial+Envelope+Saidas)',
         linhaCampoCupom('Esperado', formatarMoeda(dados.esperado)),
-        '  (Sistema - Total Bancario)',
+        '  (Dinheiro Agenda)',
         linhaCampoCupom('Diferença', formatarMoeda(dados.diferenca)),
         '  (Apurado - Esperado)',
     );
@@ -935,6 +939,8 @@ function preencherCupom(dados) {
     rowTransferencia.style.display = dados.transferencia > 0 ? 'block' : 'none';
     document.getElementById('print-transferencia').textContent = formatarMoeda(dados.transferencia);
     document.getElementById('print-sistema').textContent = formatarMoeda(dados.sistema);
+    const elPrintSistemaTT = document.getElementById('print-sistema-tira-teima');
+    if (elPrintSistemaTT) elPrintSistemaTT.textContent = formatarMoeda(dados.sistemaTiraTeima);
     document.getElementById('print-dinheiro-agenda').textContent = formatarMoeda(dados.dinheiroAgenda);
     const elEnvelope = document.getElementById('print-envelope-noite');
     if (elEnvelope) elEnvelope.textContent = formatarMoeda(dados.envelopeNoite);
@@ -1086,6 +1092,8 @@ function calcularFinal() {
     if (elEsperado) elEsperado.textContent = formatarMoeda(dados.esperado);
     const elDif = document.getElementById('final-diferenca');
     if (elDif) elDif.textContent = formatarMoeda(dados.diferenca);
+    const elSistemaTT = document.getElementById('final-sistema-tira-teima');
+    if (elSistemaTT) elSistemaTT.textContent = formatarMoeda(dados.sistemaTiraTeima);
     preencherCupom(dados);
     return dados;
 }
