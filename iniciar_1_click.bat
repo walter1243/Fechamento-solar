@@ -90,16 +90,18 @@ if not errorlevel 1 goto :service_ok
 
 start "Servico de Impressao Elgin i9" /D "%APP_DIR%" "%VENV_PY%" "%SERVICE_FILE%"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$ok = $false; 1..30 | ForEach-Object { try { Invoke-RestMethod -Uri 'http://127.0.0.1:8000/status_impressora' -Method Get -TimeoutSec 1 | Out-Null; $ok = $true; break } catch { Start-Sleep -Seconds 1 } }; if ($ok) { exit 0 } else { exit 1 }"
-if errorlevel 1 goto :diag_service
+if errorlevel 1 goto :warn_service
 goto :service_ok
 
-:diag_service
+:warn_service
 echo.
-echo ATENCAO: o servico nao respondeu. Rodando em modo diagnostico para mostrar o erro:
-echo ----------------------------------------------------------------------
-"%VENV_PY%" "%SERVICE_FILE%"
-echo ----------------------------------------------------------------------
-goto :err_service_start
+echo AVISO: o servico local de impressao (http://127.0.0.1:8000) nao respondeu em 30s.
+echo O sistema sera aberto mesmo assim. A impressora Elgin pode nao funcionar ate
+echo que o servico esteja online.
+echo Para diagnosticar manualmente, rode no terminal:
+echo   "%VENV_PY%" "%SERVICE_FILE%"
+echo.
+goto :open_browser
 
 :service_ok
 echo [5/5] Conferindo impressora selecionada...
@@ -107,6 +109,7 @@ for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass
 echo Impressora ativa: %PRINTER_NAME%
 echo.
 
+:open_browser
 if "%NO_BROWSER%"=="1" goto :success
 
 set "CHROME_EXE="
