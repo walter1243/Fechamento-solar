@@ -35,6 +35,13 @@ function formatarMoeda(valor) {
     return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
 }
 
+function formatarMoedaComSinal(valor) {
+    const numero = Number(valor || 0);
+    if (numero === 0) return formatarMoeda(0);
+    const sinal = numero > 0 ? '+' : '-';
+    return `${sinal}R$ ${Math.abs(numero).toFixed(2).replace('.', ',')}`;
+}
+
 function paraNumero(valor) {
     return parseFloat(valor) || 0;
 }
@@ -267,10 +274,9 @@ function gerarConteudoFinalTexto(dados) {
         linhaCampoCupom('** TOTAL DINHEIRO **', formatarMoeda(dados.totalDinheiroCupom)),
         '  (Parcial+Envelope+Saidas+Agenda)',
         separador,
-        linhaCampoCupom('Esperado', formatarMoeda(dados.esperado)),
-        '  (Sistema + Agenda)',
-        linhaCampoCupom('Diferenca', formatarMoeda(dados.diferenca)),
-        '  (Total Dinheiro - Esperado)',
+        linhaCampoCupom('Diferenca', formatarMoedaComSinal(dados.diferenca)),
+        '  (Total Dinheiro+Agenda - Sistema+Agenda)',
+        '  (+ sobra / - falta)',
         '',
         separador,
         linhaCampoCupom('** TOTAL GERAL **', formatarMoeda(dados.totalGeral)),
