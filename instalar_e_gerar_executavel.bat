@@ -4,6 +4,39 @@ chcp 65001 >nul
 
 cd /d "%~dp0"
 set "APP_DIR=%~dp0"
+
+REM Se executado fora da pasta do projeto (ex.: Desktop), procura a pasta correta.
+if exist "%APP_DIR%index.html" if exist "%APP_DIR%iniciar_executavel.py" goto :app_dir_ok
+
+echo Pasta atual nao contem o projeto. Procurando "app fechamento"...
+for %%D in (
+    "%USERPROFILE%\Documents\app fechamento\"
+    "%USERPROFILE%\Desktop\app fechamento\"
+    "%USERPROFILE%\Desktop\PENDRIVE_FechamentoSolar\"
+    "%USERPROFILE%\OneDrive\Documents\app fechamento\"
+    "%USERPROFILE%\OneDrive\Desktop\app fechamento\"
+    "D:\app fechamento\"
+    "E:\app fechamento\"
+    "F:\app fechamento\"
+    "G:\app fechamento\"
+    "H:\app fechamento\"
+) do (
+    if exist "%%~D\index.html" if exist "%%~D\iniciar_executavel.py" (
+        set "APP_DIR=%%~D"
+        goto :app_dir_found
+    )
+)
+
+echo ERRO: nao foi possivel localizar a pasta do projeto "app fechamento".
+echo Coloque este .bat dentro da pasta do projeto ou clone/copie o projeto para o Desktop ou Documents.
+pause
+exit /b 1
+
+:app_dir_found
+echo Projeto localizado em: %APP_DIR%
+cd /d "%APP_DIR%"
+
+:app_dir_ok
 set "REQ_FILE=%APP_DIR%requirements.txt"
 set "SERVICE_FILE=%APP_DIR%impressora_service.py"
 set "ENTRY_FILE=%APP_DIR%iniciar_executavel.py"
