@@ -67,7 +67,7 @@
             </div>
             <div id="parcial" class="tab-content">
             <h2>Fechamento Parcial</h2>
-            <form id="parcial-form" class="form-grid">
+            <form id="parcial-form" class="form-grid" onsubmit="event.preventDefault(); return false;">
                 <label for="parcial-operador">Qual caixa voce e:</label>
                 <select id="parcial-operador" name="parcial-operador" required>
                     <option value="">Selecione o caixa</option>
@@ -92,7 +92,7 @@
                 <p class="result-line">Operador: <span id="final-parcial-operador">-</span></p>
                 <p class="result-line">Data/Hora: <span id="final-parcial-datahora">-</span></p>
             </div>
-            <form id="final-form" class="form-grid">
+            <form id="final-form" class="form-grid" onsubmit="event.preventDefault(); return false;">
                 <label for="operador-parcial">Caixa de confirmação (parcial):</label>
                 <select id="operador-parcial" name="operador-parcial" required>
                     <option value="">Selecione um caixa salvo no parcial</option>
@@ -160,7 +160,7 @@
                 <div class="result-panel">
                     <p class="result-line">Total Cartão: <span id="final-total-cartao">R$ 0,00</span></p>
                     <p class="result-line">Total PIX/Transferência: <span id="final-total-pix-transferencia">R$ 0,00</span></p>
-                    <p class="result-line">Apurado (Parcial + Envelope): <span id="final-apurado">R$ 0,00</span></p>
+                    <p class="result-line">Apurado (Parcial + Envelope + Saídas): <span id="final-apurado">R$ 0,00</span></p>
                     <p class="result-line">Esperado (Sistema + Agenda): <span id="final-esperado">R$ 0,00</span></p>
                     <p class="result-line"><strong>Diferença (Apurado − Esperado): <span id="final-diferenca">R$ 0,00</span></strong></p>
                 </div>
@@ -184,7 +184,7 @@
             <p>Sistema: <span id="print-sistema">R$ 0,00</span></p>
             <p>Dinheiro Agenda: <span id="print-dinheiro-agenda">R$ 0,00</span></p>
             <p>Envelope Noite: <span id="print-envelope-noite">R$ 0,00</span></p>
-            <p>Apurado (Parcial + Envelope): <span id="print-apurado">R$ 0,00</span></p>
+            <p>Apurado (Parcial + Envelope + Saídas): <span id="print-apurado">R$ 0,00</span></p>
             <p>Esperado (Sistema + Agenda): <span id="print-esperado">R$ 0,00</span></p>
             <p><strong>Diferença (Apurado − Esperado): <span id="print-diferenca">R$ 0,00</span></strong></p>
             <p>Total Cartão: <span id="print-total-cartao">R$ 0,00</span></p>

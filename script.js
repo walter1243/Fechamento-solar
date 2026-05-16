@@ -189,7 +189,10 @@ function normalizarDadosCupom(dados) {
     const envelopeNoite = Number(dados.envelopeNoite || 0);
     const sistema = Number(dados.sistema || 0);
     const dinheiroAgenda = Number(dados.dinheiroAgenda || 0);
-    if (dados.apurado == null) dados.apurado = parcialValor + envelopeNoite;
+    const saidasManha = Number(dados.saidasManha || 0);
+    const saidasTarde = Number(dados.saidasTarde || 0);
+    const saidas = Number(dados.saidas != null ? dados.saidas : (saidasManha + saidasTarde));
+    if (dados.apurado == null) dados.apurado = parcialValor + envelopeNoite + saidas;
     if (dados.esperado == null) dados.esperado = sistema + dinheiroAgenda;
     if (dados.diferenca == null) dados.diferenca = dados.apurado - dados.esperado;
     if (dados.totalDinheiro == null) dados.totalDinheiro = dados.apurado;
@@ -232,7 +235,7 @@ function gerarConteudoFinalTexto(dados) {
         linhaCampoCupom('Envelope Noite', formatarMoeda(dados.envelopeNoite)),
         '',
         linhaCampoCupom('Apurado', formatarMoeda(dados.apurado)),
-        '  (Parcial + Envelope Noite)',
+        '  (Parcial + Envelope + Saidas)',
         linhaCampoCupom('Esperado', formatarMoeda(dados.esperado)),
         '  (Sistema + Dinheiro Agenda)',
         linhaCampoCupom('Diferença', formatarMoeda(dados.diferenca)),
@@ -957,16 +960,17 @@ function montarDadosCupom() {
     const saidasManha = paraNumero(document.getElementById('saidas-manha').value);
     const saidasTarde = paraNumero(document.getElementById('saidas-tarde').value);
     const parcialValor = paraNumero(parcialSelecionado.valor);
-    // Apurado = dinheiro fisico real (parcial contado + envelope da noite).
-    // Esperado = o que deveria ter (sistema + dinheiro da agenda).
+    // Apurado = dinheiro fisico que circulou no caixa
+    //   = Parcial (contado fim turno manha) + Envelope Noite + Saidas em dinheiro (sangrias).
+    // Esperado = Sistema + Dinheiro da Agenda.
     // Diferenca = Apurado - Esperado (positivo = sobra; negativo = falta).
-    const apurado = parcialValor + envelopeNoite;
+    const saidas = saidasManha + saidasTarde;
+    const apurado = parcialValor + envelopeNoite + saidas;
     const esperado = sistema + dinheiroAgenda;
     const diferenca = apurado - esperado;
     const totalDinheiro = apurado; // mantido por compatibilidade
     const totalCartao = debito + credito + alimentacao;
     const totalPixTransferencia = pix + transferencia;
-    const saidas = saidasManha + saidasTarde;
     return {
         parcialDataHora: parcialSelecionado.datahora || document.getElementById('parcial-datahora').value,
         parcialOperador: parcialSelecionado.operador || document.getElementById('parcial-operador').value || '-',
