@@ -2,6 +2,8 @@ const CHAVE_PARCIAL = 'fechamento_parcial_v1';
 const CHAVE_PARCIAIS = 'fechamentos_parciais_v1';
 const CHAVE_ULTIMO_CUPOM = 'ultimo_cupom_v1';
 const URL_SERVICO_IMPRESSAO = 'http://127.0.0.1:8000/imprimir';
+const URL_SERVICO_IMPRESSAO_IMAGEM = 'http://127.0.0.1:8000/imprimir_imagem';
+const URL_SERVICO_STATUS = 'http://127.0.0.1:8000/status_impressora';
 const API_BASE_URL = window.location.protocol === 'file:'
     ? 'https://fechamento-solar.vercel.app'
     : window.location.origin;
@@ -212,9 +214,11 @@ function gerarConteudoFinalTexto(dados) {
     }
 
     linhas.push(
-        linhaCampoCupom('Sistema', formatarMoeda(dados.sistema)),
+        linhaCampoCupom('Sistema (referência)', formatarMoeda(dados.sistema)),
         linhaCampoCupom('Dinheiro Agenda', formatarMoeda(dados.dinheiroAgenda)),
-        linhaCampoCupom('Total Dinheiro', formatarMoeda(dados.totalDinheiro)),
+        linhaCampoCupom('Envelope Noite', formatarMoeda(dados.envelopeNoite)),
+        linhaCampoCupom('Dinheiro no Caixa', formatarMoeda(dados.totalDinheiro)),
+        '  (Parcial + Envelope + Agenda)',
         linhaCampoCupom('Total Cartão', formatarMoeda(dados.totalCartao)),
         linhaCampoCupom('Total PIX/Transf', formatarMoeda(dados.totalPixTransferencia)),
         '',
@@ -248,10 +252,7 @@ function gerarConteudoFinalTexto(dados) {
     linhas.push(
         '',
         separador,
-        'TOTAL FINAL (SEM PARCIAL):',
-        `${formatarMoeda(dados.total)}`,
         linhaCampoCupom('Saídas (M+T)', formatarMoeda(dados.saidas)),
-        'Diferença:',
         separador,
         '',
         ''
@@ -263,29 +264,114 @@ function gerarConteudoFinalTexto(dados) {
 function gerarCupomElginArquivo(conteudo) {
     baixarArquivo('cupom-elgin.txt', conteudo);
 }
+
+async function consultarStatusImpressora() {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(function () {
+        controller.abort();
+    }, 3000);
+
+    try {
+        const response = await fetch(URL_SERVICO_STATUS, {
+            method: 'GET',
+            signal: controller.signal
+        });
+
+        if (!response.ok) {
+            throw new Error(`Serviço respondeu com status ${response.status}.`);
+        }
+
+        const status = await response.json();
+        if (status.status !== 'ok') {
+            throw new Error(status.detalhes || 'Nao foi possivel ler o status da impressora.');
+        }
+
+        if (!Array.isArray(status.printers) || status.printers.length === 0) {
+            throw new Error('Nenhuma impressora encontrada neste computador. Verifique se a Elgin i9 esta instalada no Windows e ligada.');
+        }
+
+        if (!status.printer) {
+            throw new Error('Nao foi possivel selecionar uma impressora para impressao.');
+        }
+
+        return status;
+    } catch (erro) {
+        if (erro.name === 'AbortError') {
+            throw new Error('Servico de impressao local nao respondeu em tempo habil.');
+        }
+        throw erro;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
 async function imprimirViaServicoLocal(conteudo) {
-    const response = await fetch(URL_SERVICO_IMPRESSAO, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: conteudo })
-    });
+    const status = await consultarStatusImpressora();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(function () {
+        controller.abort();
+    }, 12000);
 
-    if (!response.ok) {
-        throw new Error(`Serviço respondeu com status ${response.status}.`);
+    try {
+        // Prioriza RAW ESC/POS, que costuma ser mais confiavel na Elgin i9 (USB).
+        const responseTexto = await fetch(URL_SERVICO_IMPRESSAO, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+                texto: conteudo,
+                impressora: status.printer
+            })
+        });
+
+        if (responseTexto.ok) {
+            const resultadoTexto = await responseTexto.json();
+            if (resultadoTexto.status === 'Impresso com sucesso') {
+                resultadoTexto.printers = status.printers;
+                resultadoTexto.modo = 'texto';
+                return resultadoTexto;
+            }
+        }
+
+        // Fallback para imagem quando RAW falhar.
+        const responseImagem = await fetch(URL_SERVICO_IMPRESSAO_IMAGEM, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+                linhas: String(conteudo || '').split(/\r?\n/),
+                impressora: status.printer
+            })
+        });
+
+        if (!responseImagem.ok) {
+            throw new Error(`Serviço respondeu com status ${responseImagem.status}.`);
+        }
+
+        const resultadoImagem = await responseImagem.json();
+        if (resultadoImagem.status !== 'Impresso como imagem com sucesso') {
+            throw new Error(resultadoImagem.detalhes || 'Falha ao imprimir via serviço local.');
+        }
+
+        resultadoImagem.printers = status.printers;
+        resultadoImagem.modo = 'imagem';
+        return resultadoImagem;
+    } catch (erro) {
+        if (erro.name === 'AbortError') {
+            throw new Error('Tempo limite ao tentar imprimir no serviço local.');
+        }
+        throw erro;
+    } finally {
+        clearTimeout(timeoutId);
     }
-
-    const resultado = await response.json();
-    if (resultado.status !== 'Impresso com sucesso') {
-        throw new Error(resultado.detalhes || 'Falha ao imprimir via serviço local.');
-    }
-
-    return resultado;
 }
 
 async function imprimirOuGerarFallback(conteudo, tipoCupom) {
     try {
-        await imprimirViaServicoLocal(conteudo);
-        alert(`Impressão ${tipoCupom} enviada com sucesso para a Elgin i9.`);
+        const resultado = await imprimirViaServicoLocal(conteudo);
+        const nomeImpressora = resultado.printer || 'impressora local';
+        const modo = resultado.modo === 'imagem' ? 'imagem' : 'texto';
+        alert(`Impressão ${tipoCupom} enviada com sucesso para ${nomeImpressora} (modo ${modo}).`);
     } catch (erro) {
         console.error('Erro na impressão via serviço local:', erro);
         alert(`Nao foi possivel imprimir ${tipoCupom} automaticamente. Um arquivo cupom-elgin.txt sera baixado para impressao manual.\n\nDetalhes: ${erro.message}`);
@@ -793,14 +879,14 @@ function preencherCupom(dados) {
     document.getElementById('print-transferencia').textContent = formatarMoeda(dados.transferencia);
     document.getElementById('print-sistema').textContent = formatarMoeda(dados.sistema);
     document.getElementById('print-dinheiro-agenda').textContent = formatarMoeda(dados.dinheiroAgenda);
+    const elEnvelope = document.getElementById('print-envelope-noite');
+    if (elEnvelope) elEnvelope.textContent = formatarMoeda(dados.envelopeNoite);
     document.getElementById('print-total-dinheiro').textContent = formatarMoeda(dados.totalDinheiro);
     document.getElementById('print-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('print-total-pix').textContent = formatarMoeda(dados.totalPixTransferencia);
     document.getElementById('print-saidas-manha-total').textContent = formatarMoeda(dados.saidasManha);
     document.getElementById('print-saidas-tarde').textContent = formatarMoeda(dados.saidasTarde);
-    document.getElementById('print-total-final').textContent = formatarMoeda(dados.total);
     document.getElementById('print-saidas').textContent = formatarMoeda(dados.saidas);
-    document.getElementById('print-diferenca').textContent = '';
     const lista = document.getElementById('print-saidas-manha-list');
     lista.innerHTML = '';
     if (!dados.detalhesSaidasManha.length) {
@@ -842,18 +928,20 @@ function montarDadosCupom() {
     const transferencia = paraNumero(document.getElementById('transferencia').value);
     const sistema = paraNumero(document.getElementById('sistema').value);
     const dinheiroAgenda = paraNumero(document.getElementById('dinheiro-agenda').value);
+    const envelopeNoite = paraNumero(document.getElementById('envelope-noite').value);
     const saidasManha = paraNumero(document.getElementById('saidas-manha').value);
     const saidasTarde = paraNumero(document.getElementById('saidas-tarde').value);
-    const totalDinheiro = sistema + dinheiroAgenda;
+    const parcialValor = paraNumero(parcialSelecionado.valor);
+    // Dinheiro real no caixa = fechamento parcial + envelope noite + dinheiro agenda.
+    // O Sistema e usado apenas como tira-teima para conferencia.
+    const totalDinheiro = parcialValor + envelopeNoite + dinheiroAgenda;
     const totalCartao = debito + credito + alimentacao;
     const totalPixTransferencia = pix + transferencia;
-    // O valor do parcial eh somente referencia e nunca entra na soma final.
-    const total = totalCartao + totalPixTransferencia + totalDinheiro;
     const saidas = saidasManha + saidasTarde;
     return {
         parcialDataHora: parcialSelecionado.datahora || document.getElementById('parcial-datahora').value,
         parcialOperador: parcialSelecionado.operador || document.getElementById('parcial-operador').value || '-',
-        parcialValor: paraNumero(parcialSelecionado.valor),
+        parcialValor,
         finalOperador: finalOperadorInput || parcialSelecionado.operador || '-',
         caixaCompartilhado,
         debito,
@@ -863,6 +951,7 @@ function montarDadosCupom() {
         transferencia,
         sistema,
         dinheiroAgenda,
+        envelopeNoite,
         totalDinheiro,
         totalCartao,
         totalPixTransferencia,
@@ -870,7 +959,7 @@ function montarDadosCupom() {
         detalhesSaidasManha: obterDetalhesSaidas('manha'),
         saidasTarde,
         detalhesSaidasTarde: obterDetalhesSaidas('tarde'),
-        total,
+        total: 0,
         saidas,
         diferenca: null
     };
@@ -916,8 +1005,6 @@ function calcularFinal() {
     document.getElementById('final-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('final-total-pix-transferencia').textContent = formatarMoeda(dados.totalPixTransferencia);
     document.getElementById('final-total-dinheiro').textContent = formatarMoeda(dados.totalDinheiro);
-    document.getElementById('final-total').textContent = formatarMoeda(dados.total);
-    document.getElementById('final-diferenca').textContent = '';
     preencherCupom(dados);
     return dados;
 }

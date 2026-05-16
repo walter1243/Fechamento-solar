@@ -34,8 +34,16 @@ CREATE TABLE IF NOT EXISTS fechamentos_finais (
     saidas_manha_total NUMERIC(12,2) NOT NULL DEFAULT 0,
     saidas_tarde_total NUMERIC(12,2) NOT NULL DEFAULT 0,
     saidas_total NUMERIC(12,2) NOT NULL DEFAULT 0,
+    envelope_noite NUMERIC(12,2) NOT NULL DEFAULT 0,
+    parcial_valor NUMERIC(12,2) NOT NULL DEFAULT 0,
+    diferenca NUMERIC(12,2) NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Migracoes para bancos existentes
+ALTER TABLE fechamentos_finais ADD COLUMN IF NOT EXISTS envelope_noite NUMERIC(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE fechamentos_finais ADD COLUMN IF NOT EXISTS parcial_valor NUMERIC(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE fechamentos_finais ADD COLUMN IF NOT EXISTS diferenca NUMERIC(12,2) NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS saidas_detalhes (
     id BIGSERIAL PRIMARY KEY,

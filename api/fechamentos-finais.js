@@ -50,6 +50,7 @@ module.exports = async function handler(req, res) {
           transferencia: Number(row.transferencia || 0),
           sistema: Number(row.sistema || 0),
           dinheiroAgenda: Number(row.dinheiro_agenda || 0),
+          envelopeNoite: Number(row.envelope_noite || 0),
           totalDinheiro: Number(row.total_dinheiro || 0),
           totalCartao: Number(row.total_cartao || 0),
           totalPixTransferencia: Number(row.total_pix_transferencia || 0),
@@ -58,7 +59,8 @@ module.exports = async function handler(req, res) {
           saidasTarde: Number(row.saidas_tarde_total || 0),
           saidas: Number(row.saidas_total || 0),
           parcialDataHora: row.created_at,
-          parcialValor: 0,
+          parcialValor: Number(row.parcial_valor || 0),
+          diferenca: row.diferenca === null || row.diferenca === undefined ? null : Number(row.diferenca || 0),
           detalhesSaidasManha: detalhes
             .filter(item => item.fechamento_final_id === row.id && item.periodo === 'manha')
             .map(item => ({ descricao: item.descricao, valor: Number(item.valor || 0) })),
@@ -129,7 +131,10 @@ module.exports = async function handler(req, res) {
         total_final,
         saidas_manha_total,
         saidas_tarde_total,
-        saidas_total
+        saidas_total,
+        envelope_noite,
+        parcial_valor,
+        diferenca
       ) VALUES (
         ${String(body.parcialOperador || '-').trim()},
         ${String(body.finalOperador || '-').trim()},
@@ -147,7 +152,10 @@ module.exports = async function handler(req, res) {
         ${Number(body.total || 0)},
         ${Number(body.saidasManha || 0)},
         ${Number(body.saidasTarde || 0)},
-        ${Number(body.saidas || 0)}
+        ${Number(body.saidas || 0)},
+        ${Number(body.envelopeNoite || 0)},
+        ${Number(body.parcialValor || 0)},
+        ${Number(body.diferenca || 0)}
       )
       RETURNING id
     `;
