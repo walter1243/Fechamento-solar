@@ -1,6 +1,7 @@
 const CHAVE_PARCIAL = 'fechamento_parcial_v1';
 const CHAVE_PARCIAIS = 'fechamentos_parciais_v1';
 const CHAVE_ULTIMO_CUPOM = 'ultimo_cupom_v1';
+const CHAVE_DATA_SESSAO = 'sessao_data_v1';
 const URL_SERVICO_IMPRESSAO = 'http://127.0.0.1:8000/imprimir';
 const URL_SERVICO_IMPRESSAO_IMAGEM = 'http://127.0.0.1:8000/imprimir_imagem';
 const URL_SERVICO_STATUS = 'http://127.0.0.1:8000/status_impressora';
@@ -119,7 +120,10 @@ async function salvarParcialNoBanco(parcial) {
 }
 
 async function carregarParciaisDoBanco() {
-    const resultado = await requisicaoJson(URL_API_PARCIAIS);
+    // Filtra apenas pelo dia de hoje para que comprovantes do dia anterior
+    //   nao apareçam mais no fechamento atual (eles seguem no historico por data).
+    const hoje = new Date().toISOString().slice(0, 10);
+    const resultado = await requisicaoJson(`${URL_API_PARCIAIS}?date=${encodeURIComponent(hoje)}`);
     const lista = Array.isArray(resultado.items) ? resultado.items : [];
     const normalizados = lista.map(function (item) {
         return {
@@ -193,6 +197,7 @@ function gerarConteudoParcialTexto(parcial) {
 
 function normalizarDadosCupom(dados) {
     const parcialValor = Number(dados.parcialValor || 0);
+    const parciaisTotal = Number(dados.parciaisTotal || 0);
     const envelopeNoite = Number(dados.envelopeNoite || 0);
     const sistema = Number(dados.sistema || 0);
     const dinheiroAgenda = Number(dados.dinheiroAgenda || 0);
@@ -207,7 +212,10 @@ function normalizarDadosCupom(dados) {
     const totalCartao = debito + credito + alimentacao;
     const totalPixTransferencia = pix + transferencia;
     const totalBancario = totalCartao + totalPixTransferencia;
+    // Se vier soma de todas as parciais usa ela; senao usa a parcial selecionada.
+    const parciaisBase = parciaisTotal > 0 ? parciaisTotal : parcialValor;
     dados.parcialValor = parcialValor;
+    dados.parciaisTotal = parciaisBase;
     dados.envelopeNoite = envelopeNoite;
     dados.sistema = sistema;
     dados.dinheiroAgenda = dinheiroAgenda;
@@ -217,16 +225,15 @@ function normalizarDadosCupom(dados) {
     dados.totalCartao = totalCartao;
     dados.totalPixTransferencia = totalPixTransferencia;
     dados.totalBancario = totalBancario;
-    // Apurado = dinheiro FISICO contado na gaveta (Parcial + Envelope + Saidas + Agenda).
-    //   Agenda entra porque eh pago em especie (vai para o caixa).
-    dados.apurado = parcialValor + envelopeNoite + saidas + dinheiroAgenda;
-    // Esperado = Sistema (vendas em dinheiro) + Agenda (pagamentos em dinheiro
-    //   que o sistema de vendas nao conhece).
+    // Apurado = dinheiro FISICO contado na gaveta
+    //   (Soma de todas as Parciais do dia + Envelope + Saidas + Agenda).
+    dados.apurado = parciaisBase + envelopeNoite + saidas + dinheiroAgenda;
     dados.esperado = sistema + dinheiroAgenda;
     dados.diferenca = dados.apurado - dados.esperado;
     dados.totalDinheiro = dados.apurado;
-    // Total Dinheiro do cupom = total fisico no caixa (mesmo valor de apurado).
     dados.totalDinheiroCupom = dados.apurado;
+    // Total Geral = soma de TUDO: Cartoes + PIX/Transf + Dinheiro fisico no caixa
+    //   (que ja inclui todas as parciais, envelope, saidas e agenda).
     dados.totalGeral = totalCartao + totalPixTransferencia + dados.totalDinheiroCupom;
     return dados;
 }
@@ -241,6 +248,7 @@ function gerarConteudoFinalTexto(dados) {
         linhaCampoCupom('Data/Hora Parcial', formatarDataHora(dados.parcialDataHora)),
         linhaCampoCupom('Caixa Parcial', dados.parcialOperador || '-'),
         linhaCampoCupom('Valor Parcial', formatarMoeda(dados.parcialValor)),
+        linhaCampoCupom('Total Parciais Dia', formatarMoeda(dados.parciaisTotal || dados.parcialValor)),
         '',
         linhaCampoCupom('Operador Final', dados.finalOperador || '-'),
         linhaCampoCupom('Cartão Débito', formatarMoeda(dados.debito)),
@@ -1005,6 +1013,10 @@ function preencherCupom(dados) {
 
 function montarDadosCupom() {
     const parcialSelecionado = obterParcialSelecionadoNoFinal() || {};
+    const todasParciais = carregarListaParciais();
+    const parciaisTotal = todasParciais.reduce(function (acc, item) {
+        return acc + paraNumero(item.valor);
+    }, 0);
     const caixaCompartilhado = !!document.getElementById('caixa-compartilhado').checked;
     const finalOperadorInput = (document.getElementById('operador-final').value || '').trim();
     const debito = paraNumero(document.getElementById('cartao-debito').value);
@@ -1018,11 +1030,14 @@ function montarDadosCupom() {
     const saidasManha = paraNumero(document.getElementById('saidas-manha').value);
     const saidasTarde = paraNumero(document.getElementById('saidas-tarde').value);
     const parcialValor = paraNumero(parcialSelecionado.valor);
+    // Usa soma de TODAS as parciais do dia (todos os caixas) se houver mais de uma,
+    //   senao cai para a parcial selecionada.
+    const parciaisBase = parciaisTotal > 0 ? parciaisTotal : parcialValor;
     const totalCartao = debito + credito + alimentacao;
     const totalPixTransferencia = pix + transferencia;
     const totalBancario = totalCartao + totalPixTransferencia;
     const saidas = saidasManha + saidasTarde;
-    const apurado = parcialValor + envelopeNoite + saidas + dinheiroAgenda;
+    const apurado = parciaisBase + envelopeNoite + saidas + dinheiroAgenda;
     const esperado = sistema + dinheiroAgenda;
     const diferenca = apurado - esperado;
     const totalDinheiro = apurado;
@@ -1030,6 +1045,7 @@ function montarDadosCupom() {
         parcialDataHora: parcialSelecionado.datahora || document.getElementById('parcial-datahora').value,
         parcialOperador: parcialSelecionado.operador || document.getElementById('parcial-operador').value || '-',
         parcialValor,
+        parciaisTotal: parciaisBase,
         finalOperador: finalOperadorInput || parcialSelecionado.operador || '-',
         caixaCompartilhado,
         debito,
@@ -1179,6 +1195,21 @@ document.addEventListener('DOMContentLoaded', async function () {
     carregarParcialNoFinal();
     const defaultButton = document.querySelector('.tab-button[data-tab="parcial"]');
     openTab('parcial', defaultButton);
+
+    // --- Limpeza ao virar o dia: zera parciais, ultimo cupom e rascunho ---
+    //   Mantem operadores cadastrados; comprovantes do dia anterior ficam apenas
+    //   no historico (banco), filtraveis por data.
+    try {
+        const hoje = new Date().toISOString().slice(0, 10);
+        const dataSalva = localStorage.getItem(CHAVE_DATA_SESSAO);
+        if (dataSalva && dataSalva !== hoje) {
+            localStorage.removeItem(CHAVE_PARCIAL);
+            localStorage.removeItem(CHAVE_PARCIAIS);
+            localStorage.removeItem(CHAVE_ULTIMO_CUPOM);
+            localStorage.removeItem('form_final_rascunho_v1');
+        }
+        localStorage.setItem(CHAVE_DATA_SESSAO, hoje);
+    } catch (_) { /* ignore */ }
 
     // --- Anti-reload acidental e persistencia automatica dos campos ---
     // 1) Bloqueia Enter em <input> de formularios (evita submit acidental que
