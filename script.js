@@ -184,7 +184,20 @@ function gerarConteudoParcialTexto(parcial) {
     return linhas.map(limitarLinhaCupom).join('\r\n');
 }
 
+function normalizarDadosCupom(dados) {
+    const parcialValor = Number(dados.parcialValor || 0);
+    const envelopeNoite = Number(dados.envelopeNoite || 0);
+    const sistema = Number(dados.sistema || 0);
+    const dinheiroAgenda = Number(dados.dinheiroAgenda || 0);
+    if (dados.apurado == null) dados.apurado = parcialValor + envelopeNoite;
+    if (dados.esperado == null) dados.esperado = sistema + dinheiroAgenda;
+    if (dados.diferenca == null) dados.diferenca = dados.apurado - dados.esperado;
+    if (dados.totalDinheiro == null) dados.totalDinheiro = dados.apurado;
+    return dados;
+}
+
 function gerarConteudoFinalTexto(dados) {
+    normalizarDadosCupom(dados);
     const separador = '-'.repeat(LARGURA_CUPOM);
     const linhas = [
         'SOLAR SUPERMERCADO',
@@ -214,11 +227,17 @@ function gerarConteudoFinalTexto(dados) {
     }
 
     linhas.push(
-        linhaCampoCupom('Sistema (referência)', formatarMoeda(dados.sistema)),
+        linhaCampoCupom('Sistema', formatarMoeda(dados.sistema)),
         linhaCampoCupom('Dinheiro Agenda', formatarMoeda(dados.dinheiroAgenda)),
         linhaCampoCupom('Envelope Noite', formatarMoeda(dados.envelopeNoite)),
-        linhaCampoCupom('Dinheiro no Caixa', formatarMoeda(dados.totalDinheiro)),
-        '  (Parcial + Envelope + Agenda)',
+        '',
+        linhaCampoCupom('Apurado', formatarMoeda(dados.apurado)),
+        '  (Parcial + Envelope Noite)',
+        linhaCampoCupom('Esperado', formatarMoeda(dados.esperado)),
+        '  (Sistema + Dinheiro Agenda)',
+        linhaCampoCupom('Diferença', formatarMoeda(dados.diferenca)),
+        '  (Apurado - Esperado)',
+        '',
         linhaCampoCupom('Total Cartão', formatarMoeda(dados.totalCartao)),
         linhaCampoCupom('Total PIX/Transf', formatarMoeda(dados.totalPixTransferencia)),
         '',
@@ -860,6 +879,7 @@ function obterDetalhesSaidas(periodo) {
 }
 
 function preencherCupom(dados) {
+    normalizarDadosCupom(dados);
     document.getElementById('print-parcial-datahora').textContent = formatarDataHora(dados.parcialDataHora);
     document.getElementById('print-parcial-operador').textContent = dados.parcialOperador || '-';
     document.getElementById('print-parcial-valor').textContent = formatarMoeda(dados.parcialValor);
@@ -881,7 +901,12 @@ function preencherCupom(dados) {
     document.getElementById('print-dinheiro-agenda').textContent = formatarMoeda(dados.dinheiroAgenda);
     const elEnvelope = document.getElementById('print-envelope-noite');
     if (elEnvelope) elEnvelope.textContent = formatarMoeda(dados.envelopeNoite);
-    document.getElementById('print-total-dinheiro').textContent = formatarMoeda(dados.totalDinheiro);
+    const elApurado = document.getElementById('print-apurado');
+    if (elApurado) elApurado.textContent = formatarMoeda(dados.apurado);
+    const elEsperado = document.getElementById('print-esperado');
+    if (elEsperado) elEsperado.textContent = formatarMoeda(dados.esperado);
+    const elDiferenca = document.getElementById('print-diferenca');
+    if (elDiferenca) elDiferenca.textContent = formatarMoeda(dados.diferenca);
     document.getElementById('print-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('print-total-pix').textContent = formatarMoeda(dados.totalPixTransferencia);
     document.getElementById('print-saidas-manha-total').textContent = formatarMoeda(dados.saidasManha);
@@ -932,9 +957,13 @@ function montarDadosCupom() {
     const saidasManha = paraNumero(document.getElementById('saidas-manha').value);
     const saidasTarde = paraNumero(document.getElementById('saidas-tarde').value);
     const parcialValor = paraNumero(parcialSelecionado.valor);
-    // Dinheiro real no caixa = fechamento parcial + envelope noite + dinheiro agenda.
-    // O Sistema e usado apenas como tira-teima para conferencia.
-    const totalDinheiro = parcialValor + envelopeNoite + dinheiroAgenda;
+    // Apurado = dinheiro fisico real (parcial contado + envelope da noite).
+    // Esperado = o que deveria ter (sistema + dinheiro da agenda).
+    // Diferenca = Apurado - Esperado (positivo = sobra; negativo = falta).
+    const apurado = parcialValor + envelopeNoite;
+    const esperado = sistema + dinheiroAgenda;
+    const diferenca = apurado - esperado;
+    const totalDinheiro = apurado; // mantido por compatibilidade
     const totalCartao = debito + credito + alimentacao;
     const totalPixTransferencia = pix + transferencia;
     const saidas = saidasManha + saidasTarde;
@@ -952,6 +981,9 @@ function montarDadosCupom() {
         sistema,
         dinheiroAgenda,
         envelopeNoite,
+        apurado,
+        esperado,
+        diferenca,
         totalDinheiro,
         totalCartao,
         totalPixTransferencia,
@@ -960,8 +992,7 @@ function montarDadosCupom() {
         saidasTarde,
         detalhesSaidasTarde: obterDetalhesSaidas('tarde'),
         total: 0,
-        saidas,
-        diferenca: null
+        saidas
     };
 }
 
@@ -1004,7 +1035,12 @@ function calcularFinal() {
     const dados = montarDadosCupom();
     document.getElementById('final-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('final-total-pix-transferencia').textContent = formatarMoeda(dados.totalPixTransferencia);
-    document.getElementById('final-total-dinheiro').textContent = formatarMoeda(dados.totalDinheiro);
+    const elApurado = document.getElementById('final-apurado');
+    if (elApurado) elApurado.textContent = formatarMoeda(dados.apurado);
+    const elEsperado = document.getElementById('final-esperado');
+    if (elEsperado) elEsperado.textContent = formatarMoeda(dados.esperado);
+    const elDif = document.getElementById('final-diferenca');
+    if (elDif) elDif.textContent = formatarMoeda(dados.diferenca);
     preencherCupom(dados);
     return dados;
 }
