@@ -1174,4 +1174,44 @@ document.addEventListener('DOMContentLoaded', async function () {
     carregarParcialNoFinal();
     const defaultButton = document.querySelector('.tab-button[data-tab="parcial"]');
     openTab('parcial', defaultButton);
+
+    // --- Anti-reload acidental e persistencia automatica dos campos ---
+    // 1) Bloqueia Enter em <input> de formularios (evita submit acidental que
+    //    em alguns navegadores recarrega a pagina e limpa os campos).
+    document.querySelectorAll('form').forEach(function (form) {
+        form.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' && ev.target && ev.target.tagName === 'INPUT') {
+                ev.preventDefault();
+            }
+        });
+    });
+
+    // 2) Persiste cada campo do formulario final em localStorage e restaura
+    //    no carregamento. Garante que F5/refresh acidental nao perca tudo.
+    const CHAVE_FORM_FINAL = 'form_final_rascunho_v1';
+    const idsCamposFinal = [
+        'cartao-debito', 'cartao-credito', 'cartao-alimentacao',
+        'pix', 'transferencia', 'sistema', 'dinheiro-agenda',
+        'envelope-noite', 'operador-final'
+    ];
+    try {
+        const rascunho = JSON.parse(localStorage.getItem(CHAVE_FORM_FINAL) || '{}');
+        idsCamposFinal.forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el && rascunho[id] != null && rascunho[id] !== '') el.value = rascunho[id];
+        });
+    } catch (_) { /* ignore */ }
+
+    function salvarRascunhoFinal() {
+        const dados = {};
+        idsCamposFinal.forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) dados[id] = el.value;
+        });
+        try { localStorage.setItem(CHAVE_FORM_FINAL, JSON.stringify(dados)); } catch (_) {}
+    }
+    idsCamposFinal.forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', salvarRascunhoFinal);
+    });
 });
