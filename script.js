@@ -211,17 +211,15 @@ function normalizarDadosCupom(dados) {
     dados.totalPixTransferencia = totalPixTransferencia;
     dados.totalBancario = totalBancario;
     // Apurado = dinheiro FISICO contado na gaveta (Parcial + Envelope + Saidas + Agenda).
-    //   Cartao/PIX/Transferencia NAO entram (recebimento digital).
+    //   Agenda entra porque eh pago em especie (vai para o caixa).
     dados.apurado = parcialValor + envelopeNoite + saidas + dinheiroAgenda;
-    // Esperado = dinheiro que a teoria diz que deveria estar na gaveta
-    //   (Sistema registrado em dinheiro + Dinheiro da Agenda/fiado).
+    // Esperado = Sistema (vendas em dinheiro) + Agenda (pagamentos em dinheiro
+    //   que o sistema de vendas nao conhece).
     dados.esperado = sistema + dinheiroAgenda;
     dados.diferenca = dados.apurado - dados.esperado;
     dados.totalDinheiro = dados.apurado;
-    // Campos extras usados apenas no comprovante:
-    //   Total Dinheiro do cupom = Parcial + Envelope Noite + Saidas (M+T) + Agenda
-    //   Total Geral = Cartoes + PIX/Transf + Total Dinheiro
-    dados.totalDinheiroCupom = parcialValor + envelopeNoite + saidas + dinheiroAgenda;
+    // Total Dinheiro do cupom = total fisico no caixa (mesmo valor de apurado).
+    dados.totalDinheiroCupom = dados.apurado;
     dados.totalGeral = totalCartao + totalPixTransferencia + dados.totalDinheiroCupom;
     return dados;
 }
@@ -271,8 +269,8 @@ function gerarConteudoFinalTexto(dados) {
         separador,
         linhaCampoCupom('Esperado', formatarMoeda(dados.esperado)),
         '  (Sistema + Agenda)',
-        linhaCampoCupom('Diferença', formatarMoeda(dados.diferenca)),
-        '  (Apurado - Esperado)',
+        linhaCampoCupom('Diferenca', formatarMoeda(dados.diferenca)),
+        '  (Total Dinheiro - Esperado)',
         '',
         separador,
         linhaCampoCupom('** TOTAL GERAL **', formatarMoeda(dados.totalGeral)),
@@ -1019,8 +1017,8 @@ function montarDadosCupom() {
     const totalPixTransferencia = pix + transferencia;
     const totalBancario = totalCartao + totalPixTransferencia;
     const saidas = saidasManha + saidasTarde;
-    const apurado = parcialValor + envelopeNoite + dinheiroAgenda + saidas;
-    const esperado = sistema - totalBancario;
+    const apurado = parcialValor + envelopeNoite + saidas + dinheiroAgenda;
+    const esperado = sistema + dinheiroAgenda;
     const diferenca = apurado - esperado;
     const totalDinheiro = apurado;
     return {
