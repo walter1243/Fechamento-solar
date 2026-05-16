@@ -218,6 +218,11 @@ function normalizarDadosCupom(dados) {
     dados.esperado = sistema + dinheiroAgenda;
     dados.diferenca = dados.apurado - dados.esperado;
     dados.totalDinheiro = dados.apurado;
+    // Campos extras usados apenas no comprovante:
+    //   Total Dinheiro do cupom = Parcial + Envelope Noite + Dinheiro Agenda
+    //   Total Geral = Cartoes + PIX/Transf + Total Dinheiro
+    dados.totalDinheiroCupom = parcialValor + envelopeNoite + dinheiroAgenda;
+    dados.totalGeral = totalCartao + totalPixTransferencia + dados.totalDinheiroCupom;
     return dados;
 }
 
@@ -260,12 +265,19 @@ function gerarConteudoFinalTexto(dados) {
         linhaCampoCupom('Total PIX/Transf', formatarMoeda(dados.totalPixTransferencia)),
         linhaCampoCupom('Total Bancário', formatarMoeda(dados.totalBancario)),
         '',
-        linhaCampoCupom('Apurado', formatarMoeda(dados.apurado)),
-        '  (Parcial+Envelope+Saidas)',
+        separador,
+        linhaCampoCupom('** TOTAL DINHEIRO **', formatarMoeda(dados.totalDinheiroCupom)),
+        '  (Parcial+Envelope+Agenda)',
+        separador,
         linhaCampoCupom('Esperado', formatarMoeda(dados.esperado)),
         '  (Sistema + Agenda)',
         linhaCampoCupom('Diferença', formatarMoeda(dados.diferenca)),
         '  (Apurado - Esperado)',
+        '',
+        separador,
+        linhaCampoCupom('** TOTAL GERAL **', formatarMoeda(dados.totalGeral)),
+        '  (Cartões + PIX + Dinheiro)',
+        separador,
     );
 
     const detalhesManhaValidos = (dados.detalhesSaidasManha || []).filter(function (i) { return Number(i.valor || 0) > 0; });
@@ -307,7 +319,7 @@ function gerarConteudoFinalTexto(dados) {
         linhas.push(
             '',
             separador,
-            linhaCampoCupom('Saídas (M+T)', formatarMoeda(dados.saidas)),
+            linhaCampoCupom('>>> TOTAL SAÍDA <<<', formatarMoeda(dados.saidas)),
             separador,
             '',
             ''
