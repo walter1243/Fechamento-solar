@@ -210,19 +210,18 @@ function normalizarDadosCupom(dados) {
     dados.totalCartao = totalCartao;
     dados.totalPixTransferencia = totalPixTransferencia;
     dados.totalBancario = totalBancario;
-    // Apurado = dinheiro FISICO contado na gaveta (Parcial + Envelope + Saidas).
+    // Apurado = dinheiro FISICO contado na gaveta (Parcial + Envelope + Saidas + Agenda).
     //   Cartao/PIX/Transferencia NAO entram (recebimento digital).
-    dados.apurado = parcialValor + envelopeNoite + saidas;
+    dados.apurado = parcialValor + envelopeNoite + saidas + dinheiroAgenda;
     // Esperado = dinheiro que a teoria diz que deveria estar na gaveta
     //   (Sistema registrado em dinheiro + Dinheiro da Agenda/fiado).
     dados.esperado = sistema + dinheiroAgenda;
     dados.diferenca = dados.apurado - dados.esperado;
     dados.totalDinheiro = dados.apurado;
     // Campos extras usados apenas no comprovante:
-    //   Total Dinheiro do cupom = Parcial + Envelope Noite + Saidas (M+T)
-    //     (formula do papel: tudo que saiu do caixa em dinheiro fisico)
+    //   Total Dinheiro do cupom = Parcial + Envelope Noite + Saidas (M+T) + Agenda
     //   Total Geral = Cartoes + PIX/Transf + Total Dinheiro
-    dados.totalDinheiroCupom = parcialValor + envelopeNoite + saidas;
+    dados.totalDinheiroCupom = parcialValor + envelopeNoite + saidas + dinheiroAgenda;
     dados.totalGeral = totalCartao + totalPixTransferencia + dados.totalDinheiroCupom;
     return dados;
 }
@@ -268,7 +267,7 @@ function gerarConteudoFinalTexto(dados) {
         '',
         separador,
         linhaCampoCupom('** TOTAL DINHEIRO **', formatarMoeda(dados.totalDinheiroCupom)),
-        '  (Parcial+Envelope+Saidas)',
+        '  (Parcial+Envelope+Saidas+Agenda)',
         separador,
         linhaCampoCupom('Esperado', formatarMoeda(dados.esperado)),
         '  (Sistema + Agenda)',
