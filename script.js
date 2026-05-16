@@ -191,11 +191,20 @@ function normalizarDadosCupom(dados) {
     const dinheiroAgenda = Number(dados.dinheiroAgenda || 0);
     const saidasManha = Number(dados.saidasManha || 0);
     const saidasTarde = Number(dados.saidasTarde || 0);
-    const saidas = Number(dados.saidas != null ? dados.saidas : (saidasManha + saidasTarde));
-    if (dados.apurado == null) dados.apurado = parcialValor + envelopeNoite + saidas;
-    if (dados.esperado == null) dados.esperado = sistema + dinheiroAgenda;
-    if (dados.diferenca == null) dados.diferenca = dados.apurado - dados.esperado;
-    if (dados.totalDinheiro == null) dados.totalDinheiro = dados.apurado;
+    const saidas = saidasManha + saidasTarde;
+    // Sempre recalcula a partir dos valores de entrada para garantir consistencia,
+    // mesmo em registros antigos do banco que tinham diferenca/apurado salvos com valores diferentes.
+    dados.parcialValor = parcialValor;
+    dados.envelopeNoite = envelopeNoite;
+    dados.sistema = sistema;
+    dados.dinheiroAgenda = dinheiroAgenda;
+    dados.saidasManha = saidasManha;
+    dados.saidasTarde = saidasTarde;
+    dados.saidas = saidas;
+    dados.apurado = parcialValor + envelopeNoite + saidas;
+    dados.esperado = sistema + dinheiroAgenda;
+    dados.diferenca = dados.apurado - dados.esperado;
+    dados.totalDinheiro = dados.apurado;
     return dados;
 }
 
@@ -243,42 +252,55 @@ function gerarConteudoFinalTexto(dados) {
         '',
         linhaCampoCupom('Total Cartão', formatarMoeda(dados.totalCartao)),
         linhaCampoCupom('Total PIX/Transf', formatarMoeda(dados.totalPixTransferencia)),
-        '',
-        linhaCampoCupom('Saídas Manhã Total', formatarMoeda(dados.saidasManha)),
-        'Detalhes Saídas Manhã:',
     );
 
-    if (!dados.detalhesSaidasManha.length) {
-        linhas.push('- Sem lançamentos');
-    } else {
-        dados.detalhesSaidasManha.forEach(function (item) {
-            linhas.push(linhaDetalheCupom('- ', item.descricao, item.valor));
-        });
+    const detalhesManhaValidos = (dados.detalhesSaidasManha || []).filter(function (i) { return Number(i.valor || 0) > 0; });
+    const detalhesTardeValidos = (dados.detalhesSaidasTarde || []).filter(function (i) { return Number(i.valor || 0) > 0; });
+    const temSaidaManha = dados.saidasManha > 0 || detalhesManhaValidos.length > 0;
+    const temSaidaTarde = dados.saidasTarde > 0 || detalhesTardeValidos.length > 0;
+
+    if (temSaidaManha) {
+        linhas.push(
+            '',
+            linhaCampoCupom('Saídas Manhã Total', formatarMoeda(dados.saidasManha)),
+            'Detalhes Saídas Manhã:',
+        );
+        if (!detalhesManhaValidos.length) {
+            linhas.push('- Sem lançamentos');
+        } else {
+            detalhesManhaValidos.forEach(function (item) {
+                linhas.push(linhaDetalheCupom('- ', item.descricao, item.valor));
+            });
+        }
     }
 
-    linhas.push(
-        '',
-        linhaCampoCupom('Saídas Tarde Total', formatarMoeda(dados.saidasTarde)),
-        'Detalhes Saídas Tarde:',
-        '',
-    );
-
-    if (!dados.detalhesSaidasTarde.length) {
-        linhas.push('- Sem lançamentos');
-    } else {
-        dados.detalhesSaidasTarde.forEach(function (item) {
-            linhas.push(linhaDetalheCupom('- ', item.descricao, item.valor));
-        });
+    if (temSaidaTarde) {
+        linhas.push(
+            '',
+            linhaCampoCupom('Saídas Tarde Total', formatarMoeda(dados.saidasTarde)),
+            'Detalhes Saídas Tarde:',
+        );
+        if (!detalhesTardeValidos.length) {
+            linhas.push('- Sem lançamentos');
+        } else {
+            detalhesTardeValidos.forEach(function (item) {
+                linhas.push(linhaDetalheCupom('- ', item.descricao, item.valor));
+            });
+        }
     }
 
-    linhas.push(
-        '',
-        separador,
-        linhaCampoCupom('Saídas (M+T)', formatarMoeda(dados.saidas)),
-        separador,
-        '',
-        ''
-    );
+    if (temSaidaManha || temSaidaTarde) {
+        linhas.push(
+            '',
+            separador,
+            linhaCampoCupom('Saídas (M+T)', formatarMoeda(dados.saidas)),
+            separador,
+            '',
+            ''
+        );
+    } else {
+        linhas.push('', '');
+    }
 
     return linhas.map(limitarLinhaCupom).join('\r\n');
 }
@@ -912,33 +934,38 @@ function preencherCupom(dados) {
     if (elDiferenca) elDiferenca.textContent = formatarMoeda(dados.diferenca);
     document.getElementById('print-total-cartao').textContent = formatarMoeda(dados.totalCartao);
     document.getElementById('print-total-pix').textContent = formatarMoeda(dados.totalPixTransferencia);
+
+    const detalhesManhaValidos = (dados.detalhesSaidasManha || []).filter(function (i) { return Number(i.valor || 0) > 0; });
+    const detalhesTardeValidos = (dados.detalhesSaidasTarde || []).filter(function (i) { return Number(i.valor || 0) > 0; });
+    const temSaidaManha = dados.saidasManha > 0 || detalhesManhaValidos.length > 0;
+    const temSaidaTarde = dados.saidasTarde > 0 || detalhesTardeValidos.length > 0;
+    const temSaidas = temSaidaManha || temSaidaTarde;
+
+    function setRowDisplay(id, visivel) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = visivel ? '' : 'none';
+    }
+
+    setRowDisplay('print-saidas-manha-row', temSaidaManha);
+    setRowDisplay('print-saidas-manha-bloco', temSaidaManha);
+    setRowDisplay('print-saidas-tarde-row', temSaidaTarde);
+    setRowDisplay('print-saidas-tarde-bloco', temSaidaTarde);
+    setRowDisplay('print-saidas-row', temSaidas);
+
     document.getElementById('print-saidas-manha-total').textContent = formatarMoeda(dados.saidasManha);
     document.getElementById('print-saidas-tarde').textContent = formatarMoeda(dados.saidasTarde);
     document.getElementById('print-saidas').textContent = formatarMoeda(dados.saidas);
     const lista = document.getElementById('print-saidas-manha-list');
     lista.innerHTML = '';
-    if (!dados.detalhesSaidasManha.length) {
-        const vazio = document.createElement('li');
-        vazio.textContent = 'Sem lançamentos';
-        lista.appendChild(vazio);
-    } else {
-        dados.detalhesSaidasManha.forEach(function (item) {
-            const li = document.createElement('li');
-            li.textContent = `${item.descricao}: ${formatarMoeda(item.valor)}`;
-            lista.appendChild(li);
-        });
-    }
+    detalhesManhaValidos.forEach(function (item) {
+        const li = document.createElement('li');
+        li.textContent = `${item.descricao}: ${formatarMoeda(item.valor)}`;
+        lista.appendChild(li);
+    });
 
     const listaTarde = document.getElementById('print-saidas-tarde-list');
     listaTarde.innerHTML = '';
-    if (!dados.detalhesSaidasTarde.length) {
-        const vazio = document.createElement('li');
-        vazio.textContent = 'Sem lançamentos';
-        listaTarde.appendChild(vazio);
-        return;
-    }
-
-    dados.detalhesSaidasTarde.forEach(function (item) {
+    detalhesTardeValidos.forEach(function (item) {
         const li = document.createElement('li');
         li.textContent = `${item.descricao}: ${formatarMoeda(item.valor)}`;
         listaTarde.appendChild(li);
